@@ -4,6 +4,7 @@ import json
 from time import sleep
 import ast
 from datetime import timedelta
+import sys
 
 
 def space_farmer(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
@@ -15,6 +16,8 @@ def space_farmer(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f8
     daily_usd = 0
     with open(f'/home/ericgr3gory/space_farmer_{farmer_id}.txt', 'r') as file:
         first_line = file.readline().strip('\n')
+        print(first_line)
+        # it works
         for line in file:
             line = ast.literal_eval(line)
             time_utc = datetime.fromtimestamp(line['timestamp'])
