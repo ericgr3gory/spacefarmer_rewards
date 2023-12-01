@@ -55,6 +55,5 @@ def main():
     pages = space_farmer_pages()
     space_farmer_get_data(pages=pages)
 
-
 if __name__ == '__main__':
     main()
