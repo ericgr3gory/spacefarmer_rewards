@@ -2,6 +2,7 @@ import requests
 from datetime import datetime
 import json
 from time import sleep
+import ast
 
 
 def xch_scan():
@@ -32,8 +33,7 @@ def space_farmer_pages(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4eb
 
 def space_farmer_get_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794',
                           pages=1):
-
-    for page in range(1, pages+1):
+    for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
         request = requests.get(api)
         json_page = json.loads(request.text)
@@ -41,19 +41,45 @@ def space_farmer_get_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b
             write_to_file(i['attributes'])
 
 
-def space_farmer():
-    farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
-    request = requests.get(f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}')
+def space_farmer(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
+    # farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
+    usd = 0
+    xch = 0
+    pre_day = 'new'
+    daily_xch = 0
+    daily_usd = 0
+    with open(f'/home/ericgr3gory/space_farmer_{farmer_id}.txt', 'r') as file:
 
-    xch_json = json.loads(request.text)
-    for i in xch_json['data']:
-        print(f"{i['attributes']['amount']}  {i['attributes']['xch_usd']} {i['attributes']['timestamp']}" )
+        for line in file:
+            line = ast.literal_eval(line)
+            time_utc = datetime.fromtimestamp(line['timestamp'])
+            xch_amount = line['amount'] / 10 ** 12
+            usd_amount = float(line['xch_usd']) * xch_amount
+            #print(xch_amount, time_utc, usd_amount)
+            day = time_utc.date()
+            time = time_utc.time()
+
+            if day == pre_day:
+                daily_xch += xch_amount
+                daily_usd += usd_amount
+            else:
+                print(pre_day, daily_xch, daily_usd)
+                daily_xch = xch_amount
+                daily_usd = usd_amount
+            usd += usd_amount
+            xch += xch_amount
+            pre_day = day
+
+        print(usd)
+        print(xch)
 
 
 def main():
     farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
-    pages = space_farmer_pages()
-    space_farmer_get_data(pages=pages)
+    # pages = space_farmer_pages()
+    # space_farmer_get_data(pages=pages)
+    space_farmer()
+
 
 if __name__ == '__main__':
     main()
