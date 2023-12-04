@@ -4,20 +4,7 @@ import json
 from time import sleep
 import ast
 from datetime import timedelta
-
-
-def xch_scan():
-    xch_address = 'xch1jfay8srrwhxjaezvsytsgf9dc326njwelannj7jwrkx8z3ytjz8qr5zwle'
-
-    for off_set in range(1, 250):
-        xch = f'https://xchscan.com/api/account/txns?address={xch_address}&limit=10&offset={off_set}'
-        request = requests.get(xch)
-
-        xch_json = json.loads(request.text)
-        for i in xch_json['txns']:
-            time_utc = datetime.fromtimestamp(i['timestamp'])
-            print(f'{i["amount"]}  {time_utc}')
-        sleep(2.2)
+import argparse
 
 
 def write_to_file(data, farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
@@ -58,13 +45,13 @@ def last_available_date(data):
 
 
 def first_available_date(data):
-    first_date = datetime.fromtimestamp(data[0]['timestamp']).date()
-    return datetime.fromisoformat(f'{first_date} 12:00:00')
+    return datetime.fromtimestamp(data[0]['timestamp'])
 
 
 def space_farmer_daily(starting_date, data):
     t_usd = 0
     t_xch = 0
+    starting_date = datetime.fromisoformat(f'{starting_date.date()} 12:00:00')
     while starting_date > last_available_date(data):
         daily_xch = 0
         daily_usd = 0
@@ -86,14 +73,26 @@ def space_farmer_daily(starting_date, data):
 
 
 def main():
-    # farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
-    farmer_id = 'e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'
-    # pages = space_farmer_pages(farmer_id=farmer_id)
-    # space_farmer_write_data(farmer_id=farmer_id, pages=pages)
+
+    if args.l:
+        farmer_id = args.l
+    else:
+        farmer_id = 'e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'
+        # farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
+
+    if args.r:
+        pages = space_farmer_pages(farmer_id=farmer_id)
+        space_farmer_write_data(farmer_id=farmer_id, pages=pages)
+
     data = read_data(farmer_id=farmer_id)
     starting_date = first_available_date(data=data)
     space_farmer_daily(starting_date=starting_date, data=data)
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='SpaceFarmer\'s api tools')
+    parser.add_argument('-l', help='launcher_id', type=str)
+    parser.add_argument('-r', help='reload payments from api', action="store_true")
+    parser.add_argument('-n', help='get new payments from api', action="store_true")
+    args = parser.parse_args()
     main()
