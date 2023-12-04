@@ -19,6 +19,20 @@ def space_farmer_pages(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4eb
     return int(j['links']['total_pages'])
 
 
+def update_mining_file(farmer_id, data, pages):
+    date = first_available_date(data)
+    for page in range(1, pages + 1):
+        api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
+        request = requests.get(api)
+        json_page = json.loads(request.text)
+        for i in json_page['data']:
+            time_utc = datetime.fromtimestamp(i['attributes']['timestamp'])
+            print(time_utc)
+            if time_utc > date:
+                write_to_file(i['attributes'], farmer_id)
+                print(True)
+
+
 def space_farmer_write_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794',
                             pages=1):
     for page in range(1, pages + 1):
@@ -83,6 +97,11 @@ def main():
     if args.r:
         pages = space_farmer_pages(farmer_id=farmer_id)
         space_farmer_write_data(farmer_id=farmer_id, pages=pages)
+
+    if args.n:
+        pages = space_farmer_pages(farmer_id=farmer_id)
+        data = read_data(farmer_id=farmer_id)
+        update_mining_file(farmer_id=farmer_id, data=data, pages=pages)
 
     data = read_data(farmer_id=farmer_id)
     starting_date = first_available_date(data=data)
