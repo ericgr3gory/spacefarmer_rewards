@@ -21,6 +21,7 @@ def space_farmer_pages(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4eb
 
 def update_mining_file(farmer_id, data, pages):
     date = first_available_date(data)
+    new_data = []
     for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
         request = requests.get(api)
@@ -29,18 +30,28 @@ def update_mining_file(farmer_id, data, pages):
             time_utc = datetime.fromtimestamp(i['attributes']['timestamp'])
             print(time_utc)
             if time_utc > date:
-                write_to_file(i['attributes'], farmer_id)
-                print(True)
+                new_data.append(i['attributes'])
+
+            else:
+                new_data = sorted(new_data, key=lambda x: x['timestamp'])
+                for d in new_data:
+                    write_to_file(d, farmer_id)
+                return True
 
 
 def space_farmer_write_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794',
                             pages=1):
+    data = []
     for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
         request = requests.get(api)
         json_page = json.loads(request.text)
         for i in json_page['data']:
-            write_to_file(i['attributes'], farmer_id)
+            data.append(i['attributes'])
+
+    sorted_data = sorted(data, key=lambda x: x['timestamp'])
+    for d in sorted_data:
+        write_to_file(d, farmer_id)
 
 
 def read_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
@@ -55,11 +66,11 @@ def read_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bd
 
 
 def last_available_date(data):
-    return datetime.fromtimestamp(data[-1]['timestamp'])
+    return datetime.fromtimestamp(data[0]['timestamp'])
 
 
 def first_available_date(data):
-    return datetime.fromtimestamp(data[0]['timestamp'])
+    return datetime.fromtimestamp(data[-1]['timestamp'])
 
 
 def space_farmer_daily(starting_date, data):
