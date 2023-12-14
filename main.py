@@ -5,14 +5,15 @@ from time import sleep
 import ast
 from datetime import timedelta
 import argparse
+import csv
 
 
-def write_to_file(data, farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
+def write_to_file(data, farmer_id):
     with open(f'/home/ericgr3gory/space_farmer_{farmer_id}.txt', 'a') as w:
         w.write(f'{data}\n')
 
 
-def space_farmer_pages(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
+def space_farmer_pages(farmer_id):
     api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page=1'
     r = requests.get(api)
     j = json.loads(r.text)
@@ -28,7 +29,6 @@ def update_mining_file(farmer_id, data, pages):
         json_page = json.loads(request.text)
         for i in json_page['data']:
             time_utc = datetime.fromtimestamp(i['attributes']['timestamp'])
-            print(time_utc)
             if time_utc > date:
                 new_data.append(i['attributes'])
 
@@ -39,8 +39,7 @@ def update_mining_file(farmer_id, data, pages):
                 return True
 
 
-def space_farmer_write_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794',
-                            pages=1):
+def space_farmer_write_data(farmer_id, pages=1):
     data = []
     for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
@@ -54,7 +53,7 @@ def space_farmer_write_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be
         write_to_file(d, farmer_id)
 
 
-def read_data(farmer_id='e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'):
+def read_data(farmer_id):
     data = []
 
     with open(f'/home/ericgr3gory/space_farmer_{farmer_id}.txt', 'r') as file:
@@ -71,6 +70,27 @@ def last_available_date(data):
 
 def first_available_date(data):
     return datetime.fromtimestamp(data[-1]['timestamp'])
+
+
+def convert_to_cointracker(data):
+    ct = []
+    for line in data:
+        time_utc = datetime.fromtimestamp(line['timestamp'])
+        time_utc = time_utc.strftime("%m/%d/%Y %H:%M:%S")
+        xch_amount = line['amount'] / 10 ** 12
+        cointrack = {"date": time_utc, "Received Quantity": xch_amount, "Received Currency": "XCH",
+                     "Sent Quantity": None, "Sent Currency": None, "Fee Amount": None,
+                     "Fee Currency": None, "Tag": "mined"}
+        ct.append(cointrack)
+    return ct
+
+
+def csv_cointracker(data):
+    field_names = list(data[1].keys())
+    with open('/home/ericgr3gory/cointracker.csv', 'w') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=field_names)
+        writer.writeheader()
+        writer.writerows(data)
 
 
 def space_farmer_daily(starting_date, data):
@@ -98,7 +118,6 @@ def space_farmer_daily(starting_date, data):
 
 
 def main():
-
     if args.l:
         farmer_id = args.l
     else:
@@ -117,6 +136,7 @@ def main():
     data = read_data(farmer_id=farmer_id)
     starting_date = first_available_date(data=data)
     space_farmer_daily(starting_date=starting_date, data=data)
+    csv_cointracker(convert_to_cointracker(data))
 
 
 if __name__ == '__main__':
