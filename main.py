@@ -144,5 +144,6 @@ if __name__ == '__main__':
     parser.add_argument('-l', help='launcher_id', type=str)
     parser.add_argument('-r', help='reload payments from api', action="store_true")
     parser.add_argument('-n', help='get new payments from api', action="store_true")
+
     args = parser.parse_args()
     main()
