@@ -8,19 +8,19 @@ import argparse
 import csv
 
 
-def write_to_file(data, farmer_id):
+def write_to_file(data: str, farmer_id: str):
     with open(f'/home/ericgr3gory/space_farmer_{farmer_id}.txt', 'a') as w:
         w.write(f'{data}\n')
 
 
-def space_farmer_pages(farmer_id):
+def space_farmer_pages(farmer_id: str)-> int:
     api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page=1'
     r = requests.get(api)
     j = json.loads(r.text)
     return int(j['links']['total_pages'])
 
 
-def update_mining_file(farmer_id, data, pages):
+def update_mining_file(farmer_id: str, data: str, pages: int):
     date = first_available_date(data)
     new_data = []
     for page in range(1, pages + 1):
@@ -39,7 +39,7 @@ def update_mining_file(farmer_id, data, pages):
                 return True
 
 
-def space_farmer_write_data(farmer_id, pages=1):
+def space_farmer_write_data(farmer_id: str, pages: int =1):
     data = []
     for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
