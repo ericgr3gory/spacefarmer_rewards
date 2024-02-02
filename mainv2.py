@@ -21,22 +21,25 @@ def space_farmer_pages(farmer_id: str)-> int:
     return int(j['links']['total_pages'])
 
 
-def update_mining_file(farmer_id: str, data: list, pages: int):
+def update_spacfarmer_data(farmer_id: str, data: list, pages: int):
+    
     date = first_available_date(data)
     new_data = []
+    
     for page in range(1, pages + 1):
-        api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
+        api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'       
         request = requests.get(api)
         json_page = json.loads(request.text)
+        
         for i in json_page['data']:
             time_utc = datetime.fromtimestamp(i['attributes']['timestamp'])
             if time_utc > date:
                 new_data.append(i['attributes'])
-            
-    return sorted(new_data, key=lambda x: x['timestamp'])
+            else:
+                return sorted(new_data, key=lambda x: x['timestamp'])
 
 
-def retreive_spacefarmer_data(farmer_id: str, pages: int =1)-> list:
+def retreive_spacefarmer_data(farmer_id: str, pages: int = 1)-> list:
     data = []
     for page in range(1, pages + 1):
         api = f'https://spacefarmers.io/api/farmers/{farmer_id}/payouts?page={page}'
@@ -128,7 +131,7 @@ def main():
     if args.n:
         pages = space_farmer_pages(farmer_id=farmer_id)
         data = read_data(farmer_id=farmer_id)
-        data = update_mining_file(farmer_id=farmer_id, data=data, pages=pages)
+        data = update_spacfarmer_data(farmer_id=farmer_id, data=data, pages=pages)
         write_to_file(data=data, farmer_id=farmer_id)
 
     data = read_data(farmer_id=farmer_id)
