@@ -15,7 +15,7 @@ def space_farmer_pages(farmer_id: str)-> int:
     return int(j['links']['total_pages'])
 
 
-def update_spacfarmer_data(farmer_id: str, data: list, pages: int):
+def update_spacfarmer_data(farmer_id: str, data: list, pages: int)-> list:
     
     date = int(data[-1]['timestamp'])
     new_data = []
@@ -71,9 +71,10 @@ def convert_to_cointracker(data: list)-> list:
     return ct
 
 
-def write_csv(file_name, data):
-    field_names = list(data[1].keys())
-    with open(file_name, 'a') as csvfile:
+def write_csv(file_name, data, file_mode):
+    if 'w' in file_mode:
+        field_names = list(data[1].keys())
+    with open(file_name, file_mode) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         writer.writeheader()
         writer.writerows(data)
@@ -97,16 +98,17 @@ def main():
     
     if args.r:
         data = retreive_spacefarmer_data(farmer_id=farmer_id, pages=pages)
+        file_mode = 'w'
         
 
     if args.n:
         data = read_data(farmer_id=farmer_id)
         data = update_spacfarmer_data(farmer_id=farmer_id, data=data, pages=pages)
-       
+        file_mode = 'a'
         
 
-    write_csv(file_name=f"{farmer_id}.csv",data=data)
-    write_csv(file_name=f"cointracker-{farmer_id}.csv", data=convert_to_cointracker(data=data))
+    write_csv(file_name=f"{farmer_id}.csv",data=data, file_mode=file_mode)
+    write_csv(file_name=f"cointracker-{farmer_id}.csv", data=convert_to_cointracker(data=data), file_mode=file_mode)
 
 
 if __name__ == '__main__':
