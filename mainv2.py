@@ -14,9 +14,10 @@ API_PAYOUTS = '/payouts?page='
 load_dotenv()
 
 
-def api_request(api: str)->str:    
+def api_request(api: str, session: object)->str:
+
     for _ in range(3):
-        r = requests.get(api)
+        r = session.get(api)
         if r.status_code == 200:
             return r.text
         else:
@@ -25,8 +26,9 @@ def api_request(api: str)->str:
     
 
 def number_pages(farmer_id: str)-> int:
+    session = requests.Session()
     api = f'{API}{farmer_id}{API_PAYOUTS}1'
-    data = api_request(api)
+    data = api_request(api=api, session=session)
     json_data = json.loads(data)
     return int(json_data['links']['total_pages'])
 
@@ -42,10 +44,10 @@ def time_of_last_sync(data: list)-> int:
 
 def retrieve_data(farmer_id: str, pages: int, synced: int)-> list: 
     data = []
-    #session = requests.Session()
+    session = requests.Session()
     
     for page in range(1, pages + 1):
-        page = api_request(f'{API}{farmer_id}{API_PAYOUTS}{page}')
+        page = api_request(api=f'{API}{farmer_id}{API_PAYOUTS}{page}', session=session)
         json_page = json.loads(page)
         
         for i in json_page['data']:
