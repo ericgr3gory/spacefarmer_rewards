@@ -7,23 +7,31 @@ import csv
 import sys
 from dotenv import load_dotenv
 import os
+from time import sleep
 
 API = 'https://spacefarmers.io/api/farmers/'
 API_PAYOUTS = '/payouts?page='
 load_dotenv()
 
+
+def api_request(api: str)->str:    
+    for _ in range(3):
+        r = requests.get(api)
+        if r.status_code == 200:
+            return r.text
+        else:
+            sleep(3)
+    sys.exit('three attempts were made to contact api all failed.  Try again later...')
+    
+
 def number_pages(farmer_id: str)-> int:
-    r = requests.get(f'{API}{farmer_id}{API_PAYOUTS}1')
-    
-    if r.status_code == 200:
-        j = json.loads(r.text)
-    else:
-        sys.exit('Space Farmers API in unavaible.  Check your farmer ID, Check your network connection or Try again later.')
-    
-    return int(j['links']['total_pages'])
+    api = f'{API}{farmer_id}{API_PAYOUTS}1'
+    data = api_request(api)
+    json_data = json.loads(data)
+    return int(json_data['links']['total_pages'])
 
 
-def last_sync(data: list)-> int:
+def time_of_last_sync(data: list)-> int:
     try:
         return int(data[-1]['timestamp'])
     
@@ -34,19 +42,11 @@ def last_sync(data: list)-> int:
 
 def retrieve_data(farmer_id: str, pages: int, synced: int)-> list: 
     data = []
-    session = requests.Session()
+    #session = requests.Session()
     
     for page in range(1, pages + 1):
-    
-        request = session.get(f'{API}{farmer_id}{API_PAYOUTS}{page}')
-        
-        if request.status_code == 200:
-            json_page = json.loads(request.text)
-        
-        else:
-            sys.exit('Space Farmers API in unavaible.  Check your farmer ID, Check your network connection or Try again later.')
-        
-        
+        page = api_request(f'{API}{farmer_id}{API_PAYOUTS}{page}')
+        json_page = json.loads(page)
         
         for i in json_page['data']:
             time_utc = i['attributes']['timestamp']
@@ -82,10 +82,7 @@ def convert_to_cointracker(data: list)-> list:
     ct = []
     for line in data:
         time_utc = convert_date_for_cointracker(line['timestamp'])
-        #time_utc = datetime.fromtimestamp(line['timestamp'])
-        #time_utc = time_utc.strftime("%m/%d/%Y %H:%M:%S")
         xch_amount = convert_mojo_to_xch(line['amount'])
-        #xch_amount = line['amount'] / 10 ** 12
         cointrack = {"date": time_utc, "Received Quantity": xch_amount, "Received Currency": "XCH",
                      "Sent Quantity": None, "Sent Currency": None, "Fee Amount": None,
                      "Fee Currency": None, "Tag": "mined"}
@@ -94,6 +91,7 @@ def convert_to_cointracker(data: list)-> list:
 
 
 def write_csv(file_name: str, data: list, file_mode: str):
+    
     field_names = list(data[0].keys())
     with open(file_name, file_mode) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
@@ -102,9 +100,7 @@ def write_csv(file_name: str, data: list, file_mode: str):
             
         writer.writerows(data)
 
-
-
-def main():
+def arguments()->object:
     parser = argparse.ArgumentParser(description='SpaceFarmer\'s api tools')
     parser.add_argument('-l', help='launcher_id', type=str)
     parser.add_argument('-a', help='retieve all payments from api', action="store_true")
@@ -113,6 +109,15 @@ def main():
     
     if args.u and args.a:
         sys.exit('Can\'t both update payments and retrieve all payments please pick only one.')
+
+    if not args.u and not args.a:
+        sys.exit('need to either update payments or retrieve all payments please pick only one.')
+    
+    return args
+    
+
+def main():
+    args = arguments()
     
     if args.l:
         farmer_id = args.l
@@ -130,10 +135,13 @@ def main():
         data = read_data(farmer_id=farmer_id)
         file_mode = 'a'
     
-    l_s = last_sync(data)   
-    data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=l_s)
-    write_csv(file_name=f"{farmer_id}.csv",data=data, file_mode=file_mode)
-    write_csv(file_name=f"cointracker-{farmer_id}.csv", data=convert_to_cointracker(data=data), file_mode=file_mode)
+    l_s = time_of_last_sync(data)   
+    if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=l_s):
+        write_csv(file_name=f"{farmer_id}.csv",data=data, file_mode=file_mode)
+        write_csv(file_name=f"cointracker-{farmer_id}.csv", data=convert_to_cointracker(data=data), file_mode=file_mode)   
+    else:
+        sys.exit('No Updates')
+    
 
 
 if __name__ == '__main__':
