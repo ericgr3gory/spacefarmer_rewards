@@ -5,9 +5,12 @@ from datetime import timedelta
 import argparse
 import csv
 import sys
+from dotenv import load_dotenv
+import os
 
 API = 'https://spacefarmers.io/api/farmers/'
 API_PAYOUTS = '/payouts?page='
+load_dotenv()
 
 def number_pages(farmer_id: str)-> int:
     r = requests.get(f'{API}{farmer_id}{API_PAYOUTS}1')
@@ -31,10 +34,11 @@ def last_sync(data: list)-> int:
 
 def retrieve_data(farmer_id: str, pages: int, synced: int)-> list: 
     data = []
+    session = requests.Session()
     
     for page in range(1, pages + 1):
     
-        request = requests.get(f'{API}{farmer_id}{API_PAYOUTS}{page}')
+        request = session.get(f'{API}{farmer_id}{API_PAYOUTS}{page}')
         
         if request.status_code == 200:
             json_page = json.loads(request.text)
@@ -103,8 +107,7 @@ def main():
     if args.l:
         farmer_id = args.l
     else:
-        farmer_id = 'e357cc6b9efe3d487308a0faf1085b2eeb30f66be2b4ebe1f2f81bdede3b6794'
-        # farmer_id = '714d01d058b6e29f017bb5d0c6f25edd8ebb34715e168a10321e83ebf393780b'
+        farmer_id = os.environ.get('FARMER_ID')
     
     pages = number_pages(farmer_id=farmer_id)
     
