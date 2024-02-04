@@ -69,13 +69,23 @@ def read_data(farmer_id: str)->list:
 
     return data
 
+def convert_mojo_to_xch(mojos: int)->float:
+    return int(mojos) / 10 ** 12
+
+
+def convert_date_for_cointracker(date: int)->str:
+    time_utc = datetime.fromtimestamp(date)
+    return time_utc.strftime("%m/%d/%Y %H:%M:%S")
+
 
 def convert_to_cointracker(data: list)-> list:
     ct = []
     for line in data:
-        time_utc = datetime.fromtimestamp(line['timestamp'])
-        time_utc = time_utc.strftime("%m/%d/%Y %H:%M:%S")
-        xch_amount = line['amount'] / 10 ** 12
+        time_utc = convert_date_for_cointracker(line['timestamp'])
+        #time_utc = datetime.fromtimestamp(line['timestamp'])
+        #time_utc = time_utc.strftime("%m/%d/%Y %H:%M:%S")
+        xch_amount = convert_mojo_to_xch(line['amount'])
+        #xch_amount = line['amount'] / 10 ** 12
         cointrack = {"date": time_utc, "Received Quantity": xch_amount, "Received Currency": "XCH",
                      "Sent Quantity": None, "Sent Currency": None, "Fee Amount": None,
                      "Fee Currency": None, "Tag": "mined"}
