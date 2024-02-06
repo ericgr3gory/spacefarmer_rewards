@@ -38,8 +38,9 @@ def number_pages(farmer_id: str)-> int:
     api = f'{API}{farmer_id}{API_PAYOUTS}1'
     data = api_request(api=api, session=session)
     json_data = json.loads(data)
-    logger.info('number of pages found')
-    return int(json_data['links']['total_pages'])
+    pages = int(json_data['links']['total_pages'])
+    logger.info(f'number of pages found {pages}')
+    return pages
 
 
 def time_of_last_sync(data: list)-> int:
@@ -107,7 +108,7 @@ def convert_to_cointracker(data: list)-> list:
     return ct
 
 
-def write_csv(file_name: str, data: list, file_mode: str):
+def write_csv(file_name: str, data: list, file_mode: str)->None:
     logger.info(f'writing csv file {file_name}')
     field_names = list(data[0].keys())
     with open(file_name, file_mode) as csvfile:
@@ -118,22 +119,26 @@ def write_csv(file_name: str, data: list, file_mode: str):
         writer.writerows(data)
 
 def arguments()->object:
-    parser = argparse.ArgumentParser(description='SpaceFarmer\'s api tools')
+    parser = argparse.ArgumentParser(description='Retreive block reward payments from SapceFarmers.com api and write to csv')
     parser.add_argument('-l', help='launcher_id', type=str)
     parser.add_argument('-a', help='retieve all payments from api', action="store_true")
     parser.add_argument('-u', help='update payments from api', action="store_true")
     args = parser.parse_args()
     
     if args.u and args.a:
-        sys.exit('Can\'t both update payments and retrieve all payments please pick only one.')
+        text = 'Can\'t both update payments and retrieve all payments please pick only one.'
+        logger.warning(text)
+        sys.exit(text)
 
     if not args.u and not args.a:
-        sys.exit('need to either update payments or retrieve all payments please pick only one.')
+        text = 'need to either update payments or retrieve all payments please pick only one.'
+        logger.warning(text)
+        sys.exit(text)
     
     return args
     
 
-def main():
+def main()-> None:
     args = arguments()
     
     if args.l:
@@ -154,12 +159,13 @@ def main():
         data = read_data(farmer_id=farmer_id)
         file_mode = 'a'
         logger.info(f'-u update mode running for framer id {farmer_id}')
-        
+
     l_s = time_of_last_sync(data)   
     if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=l_s):
         write_csv(file_name=f"{farmer_id}.csv",data=data, file_mode=file_mode)
         write_csv(file_name=f"cointracker-{farmer_id}.csv", data=convert_to_cointracker(data=data), file_mode=file_mode)   
     else:
+        logger.info('No Updates found.')
         sys.exit('No Updates')
     
 
