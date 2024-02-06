@@ -8,28 +8,37 @@ import sys
 from dotenv import load_dotenv
 import os
 from time import sleep
+import logging
 
 API = 'https://spacefarmers.io/api/farmers/'
 API_PAYOUTS = '/payouts?page='
 load_dotenv()
-
+logging.basicConfig(filename='/tmp/space.log', encoding='utf-8', filemode='a', level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def api_request(api: str, session: object)->str:
 
     for _ in range(3):
         r = session.get(api)
+        logger.info(f'connecting to {api}')
         if r.status_code == 200:
+            logger.info(f'connected to {api}')
             return r.text
         else:
+            logger.info(f'connection failed to {api}')
+            logger.info(f'trying again')
             sleep(3)
+    logger.warning('three attempts were made to contact api all failed.  Try again later...')
     sys.exit('three attempts were made to contact api all failed.  Try again later...')
     
 
 def number_pages(farmer_id: str)-> int:
+    logger.info('finding number of pages containing payout data')
     session = requests.Session()
     api = f'{API}{farmer_id}{API_PAYOUTS}1'
     data = api_request(api=api, session=session)
     json_data = json.loads(data)
+    logger.info('number of pages found')
     return int(json_data['links']['total_pages'])
 
 
