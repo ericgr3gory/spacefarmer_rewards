@@ -43,10 +43,12 @@ def number_pages(farmer_id: str)-> int:
 
 
 def time_of_last_sync(data: list)-> int:
+    logger.info('retrieving time and date of last syc')
     try:
         return int(data[-1]['timestamp'])
     
     except IndexError:
+        logger.info('no data to retreive syc date and time from')
         return  0
         
 
@@ -58,7 +60,7 @@ def retrieve_data(farmer_id: str, pages: int, synced: int)-> list:
     for page in range(1, pages + 1):
         page = api_request(api=f'{API}{farmer_id}{API_PAYOUTS}{page}', session=session)
         json_page = json.loads(page)
-        
+        logger.info(f'getting data from{page}')
         for i in json_page['data']:
             time_utc = i['attributes']['timestamp']
             if time_utc > synced:
@@ -73,6 +75,7 @@ def retrieve_data(farmer_id: str, pages: int, synced: int)-> list:
 
 def read_data(farmer_id: str)->list:
     data = []
+    logger.info(f'reading data from file {farmer_id}.csv')
     with open(f'{farmer_id}.csv', 'r') as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
@@ -81,16 +84,19 @@ def read_data(farmer_id: str)->list:
     return data
 
 def convert_mojo_to_xch(mojos: int)->float:
+    logger.info('converting mojo to xch')
     return int(mojos) / 10 ** 12
 
 
 def convert_date_for_cointracker(date: int)->str:
+    logger.info('converting date time to cointracker.com compatible format')
     time_utc = datetime.fromtimestamp(date)
     return time_utc.strftime("%m/%d/%Y %H:%M:%S")
 
 
 def convert_to_cointracker(data: list)-> list:
     ct = []
+    logger.info('converting data to cointracker.com campatiable format')
     for line in data:
         time_utc = convert_date_for_cointracker(line['timestamp'])
         xch_amount = convert_mojo_to_xch(line['amount'])
@@ -102,7 +108,7 @@ def convert_to_cointracker(data: list)-> list:
 
 
 def write_csv(file_name: str, data: list, file_mode: str):
-    
+    logger.info(f'writing csv file {file_name}')
     field_names = list(data[0].keys())
     with open(file_name, file_mode) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
