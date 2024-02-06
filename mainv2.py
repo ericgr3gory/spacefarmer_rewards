@@ -141,17 +141,20 @@ def main():
     else:
         farmer_id = os.environ.get('FARMER_ID')
     
+    
+
     pages = number_pages(farmer_id=farmer_id)
     
     if args.a:
         data = []
         file_mode = 'w'
-        
+        logger.info(f'-a all mode running for framer id {farmer_id}')
 
     if args.u:
         data = read_data(farmer_id=farmer_id)
         file_mode = 'a'
-    
+        logger.info(f'-u update mode running for framer id {farmer_id}')
+        
     l_s = time_of_last_sync(data)   
     if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=l_s):
         write_csv(file_name=f"{farmer_id}.csv",data=data, file_mode=file_mode)
