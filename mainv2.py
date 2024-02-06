@@ -13,7 +13,8 @@ import logging
 API = 'https://spacefarmers.io/api/farmers/'
 API_PAYOUTS = '/payouts?page='
 load_dotenv()
-logging.basicConfig(filename='/tmp/space.log', encoding='utf-8', filemode='a', level=logging.DEBUG)
+logging.basicConfig(filename='/tmp/space.log', encoding='utf-8', filemode='a', level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def api_request(api: str, session: object)->str:
