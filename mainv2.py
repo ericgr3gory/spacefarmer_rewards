@@ -35,10 +35,9 @@ def api_request(api: str, session: object) -> str:
             logger.info(f"connection failed to {api}")
             logger.info(f"trying again")
             sleep(3)
-    logger.warning(
-        "three attempts were made to contact api all failed.  Try again later..."
-    )
-    sys.exit("three attempts were made to contact api all failed.  Try again later...")
+    message = "three attempts were made to contact api all failed.  Try again later..."
+    logger.warning(message)
+    sys.exit(message)
 
 
 def number_pages(farmer_id: str) -> int:
