@@ -25,10 +25,11 @@ logger = logging.getLogger(__name__)
 
 
 def week(d: int):
-    
+
     d = date.fromtimestamp(d)
-    d = d.timetuple() 
+    d = d.timetuple()
     return date(d[0], d[1], d[2]).isocalendar()[0:2]
+
 
 def space_farmer_weekly_report(data):
     xch_amount = 0
@@ -36,28 +37,27 @@ def space_farmer_weekly_report(data):
     this_dict = {}
     xch = []
     usd = []
-    yearly, weekly = week(int(data[1]['timestamp']))
-    
+    yearly, weekly = week(int(data[1]["timestamp"]))
+
     for line in data:
-        yearly, weekly = week(int(line['timestamp']))
-        key =  f'{weekly}-{yearly}'
+        yearly, weekly = week(int(line["timestamp"]))
+        key = f"{weekly}-{yearly}"
         this_dict[key] = [[], []]
-    
-    
+
     for line in data:
-    
-        yearly, weekly = week(int(line['timestamp']))
-        key =  f'{weekly}-{yearly}'
-        xch_amount = (int(line['amount']) / 10 ** 12)
-        usd_price = (float(line['xch_usd']))
-        
+
+        yearly, weekly = week(int(line["timestamp"]))
+        key = f"{weekly}-{yearly}"
+        xch_amount = int(line["amount"]) / 10**12
+        usd_price = float(line["xch_usd"])
+
         this_dict[key][0].append(xch_amount)
         this_dict[key][1].append(usd_price)
-        
-          
+
     for k in this_dict:
         print(k, sum(this_dict[k][0]), (sum(this_dict[k][1]) / len(this_dict[k][1])))
-        
+
+
 def api_request(api: str, session: object) -> str:
 
     for _ in range(3):
@@ -200,11 +200,11 @@ def main() -> None:
         farmer_id = args.l
     else:
         farmer_id = os.environ.get("FARMER_ID")
-               
+
     if args.w:
         data = read_data(farmer_id=farmer_id)
         space_farmer_weekly_report(data=data)
-        sys.exit('ba-bye')
+        sys.exit("ba-bye")
 
     pages = number_pages(farmer_id=farmer_id)
 
