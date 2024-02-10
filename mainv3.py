@@ -41,21 +41,21 @@ def space_farmer_weekly_report(data):
     for line in data:
         yearly, weekly = week(int(line['timestamp']))
         key =  f'{weekly}-{yearly}'
-        this_dict[key] = [xch, usd]
+        this_dict[key] = [[], []]
     
     
     for line in data:
-        print(line)
+    
         yearly, weekly = week(int(line['timestamp']))
         key =  f'{weekly}-{yearly}'
         xch_amount = (int(line['amount']) / 10 ** 12)
         usd_price = (float(line['xch_usd']))
         
-        this_dict[key] = [xch.append(xch_amount),
-                            usd.append(usd_price)]
+        this_dict[key][0].append(xch_amount)
+        this_dict[key][1].append(usd_price)
         
           
-    print(this_dict)
+    print(len(this_dict[key][1]))
         
 def api_request(api: str, session: object) -> str:
 
