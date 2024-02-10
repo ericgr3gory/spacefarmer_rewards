@@ -55,7 +55,8 @@ def space_farmer_weekly_report(data):
         this_dict[key][1].append(usd_price)
         
           
-    print(len(this_dict[key][1]))
+    for k in this_dict:
+        print(k, sum(this_dict[k][0]), (sum(this_dict[k][1]) / len(this_dict[k][1])))
         
 def api_request(api: str, session: object) -> str:
 
