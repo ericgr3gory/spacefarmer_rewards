@@ -13,6 +13,7 @@ from datetime import date
 
 API = "https://spacefarmers.io/api/farmers/"
 API_PAYOUTS = "/payouts?page="
+API_BLOCKS = "/blocks?page="
 load_dotenv()
 logging.basicConfig(
     filename="/tmp/space.log",
@@ -36,27 +37,29 @@ def week(d: int)->date:
     
 
 def space_farmer_daily_report(data):
-    this_dict = {}
-
+    daily_dict = {}
+    total_xch = 0
     for line in data:
 
         yearly, monthly, daily = day(int(line["timestamp"]))
         key = f"{monthly}-{daily}-{yearly}"
         
-        if not key in this_dict:
-            this_dict[key] = [[], []]
+        if not key in daily_dict:
+            daily_dict[key] = [[], []]
             
         xch_amount = int(line["amount"]) / 10**12
         usd_price = float(line["xch_usd"])
 
-        this_dict[key][0].append(xch_amount)
-        this_dict[key][1].append(usd_price)
+        daily_dict[key][0].append(xch_amount)
+        daily_dict[key][1].append(usd_price)
 
-    for k in this_dict:
-        sum_xch = sum(this_dict[k][0])
-        average_usd_price = sum(this_dict[k][1]) / len(this_dict[k][1])
+    for k in daily_dict:
+        sum_xch = sum(daily_dict[k][0])
+        total_xch += sum_xch
+        average_usd_price = sum(daily_dict[k][1]) / len(daily_dict[k][1])
         daily_usd_revenue = sum_xch * average_usd_price
         print(k, round(sum_xch, 10), round(average_usd_price, 2), round(daily_usd_revenue, 2))
+    print(total_xch)
 
 
 def space_farmer_weekly_report(data):
@@ -196,7 +199,7 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
         writer.writerows(data)
 
 
-def arguments() -> object:
+def arguments() -> argparse:
     parser = argparse.ArgumentParser(
         description="Retreive block reward payments from SapceFarmers.com api and write to csv"
     )
@@ -204,6 +207,7 @@ def arguments() -> object:
     parser.add_argument("-a", help="retieve all payments from api", action="store_true")
     parser.add_argument("-u", help="update payments from api", action="store_true")
     parser.add_argument("-w", help="weekly earning report", action="store_true")
+    parser.add_argument("-d", help="daily earning report", action="store_true")
     args = parser.parse_args()
 
     if args.u and args.a:
@@ -213,7 +217,7 @@ def arguments() -> object:
         logger.warning(text)
         sys.exit(text)
 
-    if not args.u and not args.a and not args.w:
+    if not args.u and not args.a and not args.w and not args.d:
         text = "need to either update payments or retrieve all payments please pick only one."
         logger.warning(text)
         sys.exit(text)
@@ -229,6 +233,11 @@ def main() -> None:
     else:
         farmer_id = os.environ.get("FARMER_ID")
 
+    if args.d:
+        data = read_data(farmer_id=farmer_id)
+        space_farmer_daily_report(data=data)
+        sys.exit("ba-bye")
+    
     if args.w:
         data = read_data(farmer_id=farmer_id)
         space_farmer_weekly_report(data=data)
