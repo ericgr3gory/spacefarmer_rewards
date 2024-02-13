@@ -32,11 +32,8 @@ def day(d: int)->tuple:
 
 def week(d: int)->date:
 
-    d = date.fromtimestamp(d)
-    d = d.timetuple()
+    return date.fromtimestamp(d).isocalendar()[0:2]
     
-    return date(d[0], d[1], d[2]).isocalendar()[0:2]
-
 
 def space_farmer_daily_report(data):
     this_dict = {}
@@ -234,7 +231,7 @@ def main() -> None:
 
     if args.w:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_daily_report(data=data)
+        space_farmer_weekly_report(data=data)
         sys.exit("ba-bye")
 
     pages = number_pages(farmer_id=farmer_id)
