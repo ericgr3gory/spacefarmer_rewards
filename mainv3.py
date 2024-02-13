@@ -23,12 +23,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def day(d: int):
+
+    d = date.fromtimestamp(d)
+    d = d.timetuple()
+
+    return (d[0], d[1], d[2])
 
 def week(d: int):
 
     d = date.fromtimestamp(d)
     d = d.timetuple()
+    
     return date(d[0], d[1], d[2]).isocalendar()[0:2]
+
+
+def space_farmer_daily_report(data):
+    xch_amount = 0
+    usd_amount = 0
+    this_dict = {}
+    xch = []
+    usd = []
+    yearly, monthly, daily = day(int(data[1]["timestamp"]))
+
+    for line in data:
+        yearly, monthly, daily = day(int(line["timestamp"]))
+        key = f"{monthly}-{daily}-{yearly}"
+        this_dict[key] = [[], []]
+
+    for line in data:
+
+        yearly, monthly, daily = day(int(line["timestamp"]))
+        key = f"{monthly}-{daily}-{yearly}"
+        xch_amount = int(line["amount"]) / 10**12
+        usd_price = float(line["xch_usd"])
+
+        this_dict[key][0].append(xch_amount)
+        this_dict[key][1].append(usd_price)
+
+    for k in this_dict:
+        print(k, sum(this_dict[k][0]), (sum(this_dict[k][1]) / len(this_dict[k][1])))
 
 
 def space_farmer_weekly_report(data):
@@ -203,7 +237,7 @@ def main() -> None:
 
     if args.w:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_weekly_report(data=data)
+        space_farmer_daily_report(data=data)
         sys.exit("ba-bye")
 
     pages = number_pages(farmer_id=farmer_id)
