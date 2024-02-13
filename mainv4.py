@@ -25,20 +25,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def day(d: int)->tuple:
-
-    d = date.fromtimestamp(d)
-    d = d.timetuple()
-
-    return (d[0], d[1], d[2])
+    d = date.fromtimestamp(d)   
+    return d.timetuple()[0:3]
 
 def week(d: int)->date:
-
     return date.fromtimestamp(d).isocalendar()[0:2]
     
 
-def space_farmer_daily_report(data):
+def space_farmer_daily_report(data)-> dict:
     daily_dict = {}
-    total_xch = 0
+    
     for line in data:
 
         yearly, monthly, daily = day(int(line["timestamp"]))
@@ -47,16 +43,21 @@ def space_farmer_daily_report(data):
         if not key in daily_dict:
             daily_dict[key] = [[], []]
             
-        xch_amount = int(line["amount"]) / 10**12
-        usd_price = float(line["xch_usd"])
+        xch_amount : int = int(line["amount"]) / 10**12
+        usd_price : float = float(line["xch_usd"])
 
         daily_dict[key][0].append(xch_amount)
         daily_dict[key][1].append(usd_price)
+    print_report(daily_dict)
+    return daily_dict
 
-    for k in daily_dict:
-        sum_xch = sum(daily_dict[k][0])
+def print_report(space_dict: dict)->None:
+    total_xch = 0
+
+    for k in space_dict:
+        sum_xch = sum(space_dict[k][0])
         total_xch += sum_xch
-        average_usd_price = sum(daily_dict[k][1]) / len(daily_dict[k][1])
+        average_usd_price = sum(space_dict[k][1]) / len(space_dict[k][1])
         daily_usd_revenue = sum_xch * average_usd_price
         print(k, round(sum_xch, 10), round(average_usd_price, 2), round(daily_usd_revenue, 2))
     print(total_xch)
@@ -85,8 +86,7 @@ def space_farmer_weekly_report(data):
         this_dict[key][0].append(xch_amount)
         this_dict[key][1].append(usd_price)
 
-    for k in this_dict:
-        print(k, sum(this_dict[k][0]), (sum(this_dict[k][1]) / len(this_dict[k][1])))
+    print_report(this_dict)
 
 
 def api_request(api: str, session: object) -> str:
