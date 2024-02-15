@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import os
 from time import sleep
 import logging
-from isoweek import Week
 
 API = "https://spacefarmers.io/api/farmers/"
 API_PAYOUTS = "/payouts?page="
