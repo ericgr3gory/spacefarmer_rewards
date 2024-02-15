@@ -69,10 +69,12 @@ def space_farmer_report(data: list, time_period: str):
         space_report[key][0].append(xch_amount)
         space_report[key][1].append(usd_price)
     logger.info(f'Completed spacefarmer dictionary with time period = {time_period}')
-    print_report(space_report)
+    
+    return format_for_cointracker(space_report)
+    
 
 
-def print_report(space_dict: dict) -> None:
+def format_for_cointracker(space_dict: dict) -> list:
     ct = []
 
     for k in space_dict:
@@ -91,12 +93,7 @@ def print_report(space_dict: dict) -> None:
             "Tag": "mined",
         }
         ct.append(cointrack)
-
-    write_csv(
-        file_name=f"{CURRENT_DIR}/cointracker.csv",
-        data=ct,
-        file_mode="w",
-    )
+    return ct
 
 
 def api_request(api: str, session: object) -> str:
@@ -180,26 +177,6 @@ def convert_date_for_cointracker(date: int) -> str:
     return time_utc.strftime("%m/%d/%Y %H:%M:%S")
 
 
-def convert_to_cointracker(data: list) -> list:
-    ct = []
-    logger.info("converting data to cointracker.com campatiable format")
-    for line in data:
-        time_utc = convert_date_for_cointracker(line["timestamp"])
-        xch_amount = convert_mojo_to_xch(line["amount"])
-        cointrack = {
-            "date": time_utc,
-            "Received Quantity": xch_amount,
-            "Received Currency": "XCH",
-            "Sent Quantity": None,
-            "Sent Currency": None,
-            "Fee Amount": None,
-            "Fee Currency": None,
-            "Tag": "mined",
-        }
-        ct.append(cointrack)
-    return ct
-
-
 def write_csv(file_name: str, data: list, file_mode: str) -> None:
     logger.info(f"writing csv file {file_name}")
     field_names = list(data[0].keys())
@@ -212,6 +189,7 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
 
 
 def arguments() -> argparse:
+    logger.info('Retrieving arguments')
     parser = argparse.ArgumentParser(
         description="Retreive block reward payments from SapceFarmers.com api and write to csv"
     )
@@ -238,24 +216,13 @@ def arguments() -> argparse:
 
 
 def main() -> None:
+    logger.info('starting main')
     args = arguments()
 
     if args.l:
         farmer_id = args.l
     else:
         farmer_id = os.environ.get("FARMER_ID")
-
-    if args.d:
-        data = read_data(farmer_id=farmer_id)
-        space_farmer_report(data=data, time_period="d")
-        sys.exit("ba-bye")
-
-    if args.w:
-        data = read_data(farmer_id=farmer_id)
-        space_farmer_report(data=data, time_period="w")
-        sys.exit("ba-bye")
-
-    pages = number_pages(farmer_id=farmer_id)
 
     if args.a:
         data = []
@@ -266,19 +233,33 @@ def main() -> None:
         data = read_data(farmer_id=farmer_id)
         file_mode = "a"
         logger.info(f"-u update mode running for framer id {farmer_id}")
+    
+    if args.u or args.a:    
+        pages = number_pages(farmer_id=farmer_id)
+        last_sync = time_of_last_sync(data)
+        if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
+            write_csv(file_name=f"{farmer_id}.csv", data=data, file_mode=file_mode)
+        
+        else:
+            logger.info("No Updates found.")
+    
+    if args.d:
+        data = read_data(farmer_id=farmer_id)
+        data = space_farmer_report(data=data, time_period="d")
+        file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_daily_cointracker.csv"
 
-    last_sync = time_of_last_sync(data)
-    if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
-        write_csv(file_name=f"{farmer_id}.csv", data=data, file_mode=file_mode)
+    if args.w:
+        data = read_data(farmer_id=farmer_id)
+        data = space_farmer_report(data=data, time_period="w")
+        file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_weekly_cointracker.csv"
+    
+    if args.d or args.w:
         write_csv(
-            file_name=f"{CURRENT_DIR}cointracker-{farmer_id}.csv",
-            data=convert_to_cointracker(data=data),
-            file_mode=file_mode,
-        )
-    else:
-        logger.info("No Updates found.")
-        sys.exit("No Updates")
-
+        file_name=file_name,
+        data=data,
+        file_mode="w",
+    )    
+        
 
 if __name__ == "__main__":
     main()
