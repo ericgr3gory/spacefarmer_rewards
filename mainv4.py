@@ -120,7 +120,7 @@ def time_of_last_sync(data: list) -> int:
         return int(data[-1]["timestamp"])
 
     except IndexError:
-        logger.info("no data to retreive syc date and time from")
+        logger.info("no data to retreive sync date and time from starting from begining")
         return 0
 
 
