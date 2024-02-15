@@ -10,6 +10,7 @@ import os
 from time import sleep
 import logging
 from datetime import date
+from isoweek import Week
 
 API = "https://spacefarmers.io/api/farmers/"
 API_PAYOUTS = "/payouts?page="
@@ -29,7 +30,13 @@ def day(d: int)->tuple:
     return d.timetuple()[0:3]
 
 def week(d: int)->date:
-    return date.fromtimestamp(d).isocalendar()[0:2]
+    d = date.fromtimestamp(d)
+    yearly, weekly = d.isocalendar()[0:2]
+    d = Week(year=yearly, week=weekly).friday()
+    d = f'{d} 11:00:00'
+    d = datetime.fromisoformat(d)
+    d = d.strftime("%m/%d/%Y %H:%M:%S")
+    return d
     
 
 def space_farmer_daily_report(data)-> dict:
@@ -52,34 +59,44 @@ def space_farmer_daily_report(data)-> dict:
     return daily_dict
 
 def print_report(space_dict: dict)->None:
-    total_xch = 0
+    ct = []
 
     for k in space_dict:
         sum_xch = sum(space_dict[k][0])
-        total_xch += sum_xch
         average_usd_price = sum(space_dict[k][1]) / len(space_dict[k][1])
         daily_usd_revenue = sum_xch * average_usd_price
         print(k, round(sum_xch, 10), round(average_usd_price, 2), round(daily_usd_revenue, 2))
-    print(total_xch)
+        cointrack = {
+            "date": k,
+            "Received Quantity": sum_xch,
+            "Received Currency": "XCH",
+            "Sent Quantity": None,
+            "Sent Currency": None,
+            "Fee Amount": None,
+            "Fee Currency": None,
+            "Tag": "mined",
+        }
+        ct.append(cointrack)
+    
+    write_csv(
+            file_name=f"cointracker-monthly.csv",
+            data=ct,
+            file_mode='w',
+        )
 
 
 def space_farmer_weekly_report(data):
     xch_amount = 0
-    usd_amount = 0
     this_dict = {}
-    xch = []
-    usd = []
-    yearly, weekly = week(int(data[1]["timestamp"]))
-
-    for line in data:
-        yearly, weekly = week(int(line["timestamp"]))
-        key = f"{weekly}-{yearly}"
-        this_dict[key] = [[], []]
 
     for line in data:
 
-        yearly, weekly = week(int(line["timestamp"]))
-        key = f"{weekly}-{yearly}"
+        key = week(int(line["timestamp"]))
+        
+        
+        if key not in this_dict:
+            this_dict[key] = [[], []]
+        
         xch_amount = int(line["amount"]) / 10**12
         usd_price = float(line["xch_usd"])
 
@@ -87,7 +104,7 @@ def space_farmer_weekly_report(data):
         this_dict[key][1].append(usd_price)
 
     print_report(this_dict)
-
+    
 
 def api_request(api: str, session: object) -> str:
 
