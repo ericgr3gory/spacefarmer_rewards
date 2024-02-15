@@ -9,12 +9,15 @@ import os
 from time import sleep
 import logging
 
+load_dotenv()
 API = "https://spacefarmers.io/api/farmers/"
 API_PAYOUTS = "/payouts?page="
 API_BLOCKS = "/blocks?page="
-load_dotenv()
+TEMP_DIR = os.environ.get("TEMP_DIR")
+HOME = os.environ.get("HOME")
+CURRENT_DIR = os.getcwd()
 logging.basicConfig(
-    filename="/tmp/space.log",
+    filename=f"{TEMP_DIR}/space.log",
     encoding="utf-8",
     filemode="a",
     level=logging.DEBUG,
@@ -22,9 +25,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def day(d: int)->str:
+
+def day(d: int) -> str:
     d = datetime.fromtimestamp(d).date()
-    d = datetime(year=d.year, month=d.month, day=d.day, hour=23, minute=59, second=59, microsecond=0) 
+    d = datetime(
+        year=d.year,
+        month=d.month,
+        day=d.day,
+        hour=23,
+        minute=59,
+        second=59,
+        microsecond=0,
+    )
+    logger.info('converted daily timestamp to datetime of last second of day and coverted to cointracker formet')
     return d.strftime("%m/%d/%Y %H:%M:%S")
 
 
@@ -33,37 +46,45 @@ def week(d: int) -> str:
     monday = d - timedelta(days=d.weekday())
     sunday = monday + timedelta(days=6)
     sunday = sunday.replace(hour=23, minute=59, second=59, microsecond=0)
+    logger.info('converted daily timestamp to datetime of last second of week and  coverted to cointracker formet')
     return sunday.strftime("%m/%d/%Y %H:%M:%S")
 
-def space_farmer_report(data: list , time_period: str):
-    space_report = {}
 
+def space_farmer_report(data: list, time_period: str):
+    space_report = {}
+    logger.info(f'creating spacefarmer dictionary with time period = {time_period}')
     for line in data:
-        
-        if time_period == 'w':
+
+        if time_period == "w":
             key = week(int(line["timestamp"]))
-        elif time_period == 'd':
+        elif time_period == "d":
             key = day(int(line["timestamp"]))
-        
+
         if key not in space_report:
             space_report[key] = [[], []]
-        
-        xch_amount:float = convert_mojo_to_xch(int(line["amount"]))
-        usd_price:float = float(line["xch_usd"])
+
+        xch_amount: float = convert_mojo_to_xch(int(line["amount"]))
+        usd_price: float = float(line["xch_usd"])
 
         space_report[key][0].append(xch_amount)
         space_report[key][1].append(usd_price)
-
+    logger.info(f'Completed spacefarmer dictionary with time period = {time_period}')
     print_report(space_report)
-    
-def print_report(space_dict: dict)->None:
+
+
+def print_report(space_dict: dict) -> None:
     ct = []
 
     for k in space_dict:
         sum_xch = sum(space_dict[k][0])
         average_usd_price = sum(space_dict[k][1]) / len(space_dict[k][1])
         daily_usd_revenue = sum_xch * average_usd_price
-        print(k, round(sum_xch, 10), round(average_usd_price, 2), round(daily_usd_revenue, 2))
+        logger.info(
+            k,
+            round(sum_xch, 10),
+            round(average_usd_price, 2),
+            round(daily_usd_revenue, 2),
+        )
         cointrack = {
             "date": k,
             "Received Quantity": sum_xch,
@@ -75,12 +96,13 @@ def print_report(space_dict: dict)->None:
             "Tag": "mined",
         }
         ct.append(cointrack)
-    
+
     write_csv(
-            file_name=f"cointracker-monthly.csv",
-            data=ct,
-            file_mode='w',
-        )
+        file_name=f"{CURRENT_DIR}/cointracker.csv",
+        data=ct,
+        file_mode="w",
+    )
+
 
 def api_request(api: str, session: object) -> str:
 
@@ -116,7 +138,9 @@ def time_of_last_sync(data: list) -> int:
         return int(data[-1]["timestamp"])
 
     except IndexError:
-        logger.info("no data to retreive sync date and time from starting from begining")
+        logger.info(
+            "no data to retreive sync date and time from starting from begining"
+        )
         return 0
 
 
@@ -228,12 +252,12 @@ def main() -> None:
 
     if args.d:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_report(data=data, time_period='d')
+        space_farmer_report(data=data, time_period="d")
         sys.exit("ba-bye")
-    
+
     if args.w:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_report(data=data, time_period='w')
+        space_farmer_report(data=data, time_period="w")
         sys.exit("ba-bye")
 
     pages = number_pages(farmer_id=farmer_id)
@@ -252,7 +276,7 @@ def main() -> None:
     if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
         write_csv(file_name=f"{farmer_id}.csv", data=data, file_mode=file_mode)
         write_csv(
-            file_name=f"cointracker-{farmer_id}.csv",
+            file_name=f"{CURRENT_DIR}cointracker-{farmer_id}.csv",
             data=convert_to_cointracker(data=data),
             file_mode=file_mode,
         )
