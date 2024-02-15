@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 def day(d: int)->str:
     d = datetime.fromtimestamp(d).date()
-    d = datetime(year=d.year, month=d.month, day=d.day, hour=11)
+    d = datetime(year=d.year, month=d.month, day=d.day, hour=23, minute=59, second=59, microsecond=0)
     d = d.strftime("%m/%d/%Y %H:%M:%S")
     return d
 
@@ -38,25 +38,28 @@ def week(d: int) -> str:
     return sunday.strftime("%m/%d/%Y %H:%M:%S")
 
 
-def space_farmer_daily_report(data)-> dict:
-    daily_dict = {}
-    
+
+def space_farmer_report(data: list , time_period: str):
+    this_dict = {}
+
     for line in data:
-
-        key = day(int(line["timestamp"]))
         
+        if time_period == 'w':
+            key = week(int(line["timestamp"]))
+        elif time_period == 'd':
+            key = day(int(line["timestamp"]))
         
-        if not key in daily_dict:
-            daily_dict[key] = [[], []]
-            
-        xch_amount : int = int(line["amount"]) / 10**12
-        usd_price : float = float(line["xch_usd"])
+        if key not in this_dict:
+            this_dict[key] = [[], []]
+        
+        xch_amount = int(line["amount"]) / 10**12
+        usd_price = float(line["xch_usd"])
 
-        daily_dict[key][0].append(xch_amount)
-        daily_dict[key][1].append(usd_price)
-    print_report(daily_dict)
-    return daily_dict
+        this_dict[key][0].append(xch_amount)
+        this_dict[key][1].append(usd_price)
 
+    print_report(this_dict)
+    
 def print_report(space_dict: dict)->None:
     ct = []
 
@@ -82,28 +85,6 @@ def print_report(space_dict: dict)->None:
             data=ct,
             file_mode='w',
         )
-
-
-def space_farmer_weekly_report(data):
-    xch_amount = 0
-    this_dict = {}
-
-    for line in data:
-
-        key = week(int(line["timestamp"]))
-        
-        
-        if key not in this_dict:
-            this_dict[key] = [[], []]
-        
-        xch_amount = int(line["amount"]) / 10**12
-        usd_price = float(line["xch_usd"])
-
-        this_dict[key][0].append(xch_amount)
-        this_dict[key][1].append(usd_price)
-
-    print_report(this_dict)
-    
 
 def api_request(api: str, session: object) -> str:
 
@@ -251,12 +232,12 @@ def main() -> None:
 
     if args.d:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_daily_report(data=data)
+        space_farmer_report(data=data, time_period='d')
         sys.exit("ba-bye")
     
     if args.w:
         data = read_data(farmer_id=farmer_id)
-        space_farmer_weekly_report(data=data)
+        space_farmer_report(data=data, time_period='w')
         sys.exit("ba-bye")
 
     pages = number_pages(farmer_id=farmer_id)
