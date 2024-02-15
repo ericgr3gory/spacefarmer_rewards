@@ -25,9 +25,8 @@ logger = logging.getLogger(__name__)
 
 def day(d: int)->str:
     d = datetime.fromtimestamp(d).date()
-    d = datetime(year=d.year, month=d.month, day=d.day, hour=23, minute=59, second=59, microsecond=0)
-    d = d.strftime("%m/%d/%Y %H:%M:%S")
-    return d
+    d = datetime(year=d.year, month=d.month, day=d.day, hour=23, minute=59, second=59, microsecond=0) 
+    return d.strftime("%m/%d/%Y %H:%M:%S")
 
 
 def week(d: int) -> str:
@@ -37,10 +36,8 @@ def week(d: int) -> str:
     sunday = sunday.replace(hour=23, minute=59, second=59, microsecond=0)
     return sunday.strftime("%m/%d/%Y %H:%M:%S")
 
-
-
 def space_farmer_report(data: list , time_period: str):
-    this_dict = {}
+    space_report = {}
 
     for line in data:
         
@@ -49,16 +46,16 @@ def space_farmer_report(data: list , time_period: str):
         elif time_period == 'd':
             key = day(int(line["timestamp"]))
         
-        if key not in this_dict:
-            this_dict[key] = [[], []]
+        if key not in space_report:
+            space_report[key] = [[], []]
         
-        xch_amount = int(line["amount"]) / 10**12
-        usd_price = float(line["xch_usd"])
+        xch_amount:float = convert_mojo_to_xch(int(line["amount"]))
+        usd_price:float = float(line["xch_usd"])
 
-        this_dict[key][0].append(xch_amount)
-        this_dict[key][1].append(usd_price)
+        space_report[key][0].append(xch_amount)
+        space_report[key][1].append(usd_price)
 
-    print_report(this_dict)
+    print_report(space_report)
     
 def print_report(space_dict: dict)->None:
     ct = []
@@ -252,8 +249,8 @@ def main() -> None:
         file_mode = "a"
         logger.info(f"-u update mode running for framer id {farmer_id}")
 
-    l_s = time_of_last_sync(data)
-    if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=l_s):
+    last_sync = time_of_last_sync(data)
+    if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
         write_csv(file_name=f"{farmer_id}.csv", data=data, file_mode=file_mode)
         write_csv(
             file_name=f"cointracker-{farmer_id}.csv",
