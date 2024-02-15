@@ -1,7 +1,6 @@
 import requests
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import json
-from datetime import timedelta
 import argparse
 import csv
 import sys
@@ -9,7 +8,6 @@ from dotenv import load_dotenv
 import os
 from time import sleep
 import logging
-from datetime import date
 from isoweek import Week
 
 API = "https://spacefarmers.io/api/farmers/"
@@ -25,27 +23,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def day(d: int)->tuple:
-    d = date.fromtimestamp(d)   
-    return d.timetuple()[0:3]
-
-def week(d: int)->date:
-    d = date.fromtimestamp(d)
-    yearly, weekly = d.isocalendar()[0:2]
-    d = Week(year=yearly, week=weekly).friday()
-    d = f'{d} 11:00:00'
-    d = datetime.fromisoformat(d)
+def day(d: int)->datetime:
+    d = datetime.fromtimestamp(d).date()
+    d = datetime(year=d.year, month=d.month, day=d.day, hour=11)
     d = d.strftime("%m/%d/%Y %H:%M:%S")
     return d
-    
+
+
+def week(d: int) -> str:
+    d = datetime.fromtimestamp(d)
+    monday = d - timedelta(days=d.weekday())
+    sunday = monday + timedelta(days=6)
+    sunday = sunday.replace(hour=23, minute=59, second=59, microsecond=0)
+    return sunday.strftime("%m/%d/%Y %H:%M:%S")
+
 
 def space_farmer_daily_report(data)-> dict:
     daily_dict = {}
     
     for line in data:
 
-        yearly, monthly, daily = day(int(line["timestamp"]))
-        key = f"{monthly}-{daily}-{yearly}"
+        key = day(int(line["timestamp"]))
+        
         
         if not key in daily_dict:
             daily_dict[key] = [[], []]
