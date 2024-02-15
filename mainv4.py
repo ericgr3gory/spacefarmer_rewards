@@ -79,12 +79,7 @@ def print_report(space_dict: dict) -> None:
         sum_xch = sum(space_dict[k][0])
         average_usd_price = sum(space_dict[k][1]) / len(space_dict[k][1])
         daily_usd_revenue = sum_xch * average_usd_price
-        logger.info(
-            k,
-            round(sum_xch, 10),
-            round(average_usd_price, 2),
-            round(daily_usd_revenue, 2),
-        )
+        logger.info(f'{k}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}')
         cointrack = {
             "date": k,
             "Received Quantity": sum_xch,
