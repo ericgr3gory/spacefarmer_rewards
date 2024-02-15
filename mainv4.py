@@ -23,7 +23,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def day(d: int)->datetime:
+def day(d: int)->str:
     d = datetime.fromtimestamp(d).date()
     d = datetime(year=d.year, month=d.month, day=d.day, hour=11)
     d = d.strftime("%m/%d/%Y %H:%M:%S")
