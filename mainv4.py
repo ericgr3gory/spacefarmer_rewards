@@ -113,14 +113,18 @@ def api_request(api: str, session: object) -> str:
     sys.exit(message)
 
 
-def number_pages(farmer_id: str) -> int:
+def number_pages(farmer_id: str) -> dict:
+    pages = {}
     logger.info("finding number of pages containing payout data")
     session = requests.Session()
-    api = f"{API}{farmer_id}{API_PAYOUTS}1"
-    data = api_request(api=api, session=session)
-    json_data = json.loads(data)
-    pages = int(json_data["links"]["total_pages"])
-    logger.info(f"number of pages found {pages}")
+    apis = [API_PAYOUTS, API_BLOCKS]
+    for a in apis:
+        api = f"{API}{farmer_id}{a}1"
+        data = api_request(api=api, session=session)
+        json_data = json.loads(data)
+        key = a
+        pages[key] = (int(json_data["links"]["total_pages"]))
+        #logger.info(f"number of pages found {json_data["links"]["total_pages"]}")
     return pages
 
 
@@ -136,23 +140,24 @@ def time_of_last_sync(data: list) -> int:
         return 0
 
 
-def retrieve_data(farmer_id: str, pages: int, synced: int) -> list:
-    data = []
+def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
+    data = {}
     session = requests.Session()
-
-    for page in range(1, pages + 1):
-        page = api_request(api=f"{API}{farmer_id}{API_PAYOUTS}{page}", session=session)
-        json_page = json.loads(page)
-        logger.info(f"getting data from{page}")
-        for i in json_page["data"]:
-            time_utc = i["attributes"]["timestamp"]
-            if time_utc > synced:
-                data.append(i["attributes"])
-                print(i["attributes"])
-            else:
-                return sorted(data, key=lambda x: x["timestamp"])
-
-    return sorted(data, key=lambda x: x["timestamp"])
+    for key in pages:
+        data[key]= []
+        for page in range(1, pages[key] + 1):
+            logger.info(f"getting data from{page}")
+            page = api_request(api=f"{API}{farmer_id}{key}{page}", session=session)
+            json_page = json.loads(page)
+            for i in json_page["data"]:
+                time_utc = i["attributes"]["timestamp"]
+                if time_utc > synced:
+                    data[key].append(i["attributes"])
+                    
+                else:
+                    return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
+    
+    return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
 
 
 def read_data(farmer_id: str) -> list:
@@ -238,7 +243,8 @@ def main() -> None:
         pages = number_pages(farmer_id=farmer_id)
         last_sync = time_of_last_sync(data)
         if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
-            write_csv(file_name=f"{farmer_id}.csv", data=data, file_mode=file_mode)
+            for key in data:
+                write_csv(file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv", data=data[key], file_mode=file_mode)
         
         else:
             logger.info("No Updates found.")
