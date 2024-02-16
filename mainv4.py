@@ -10,12 +10,15 @@ from time import sleep
 import logging
 
 load_dotenv()
+
 API = "https://spacefarmers.io/api/farmers/"
 API_PAYOUTS = "/payouts?page="
 API_BLOCKS = "/blocks?page="
 TEMP_DIR = os.environ.get("TEMP_DIR")
 HOME = os.environ.get("HOME")
 CURRENT_DIR = os.getcwd()
+
+
 logging.basicConfig(
     filename=f"{TEMP_DIR}/space.log",
     encoding="utf-8",
@@ -51,6 +54,7 @@ def week(d: int) -> str:
 
 
 def space_farmer_report(data: list, time_period: str):
+    
     space_report = {}
     logger.info(f'creating spacefarmer dictionary with time period = {time_period}')
     for line in data:
@@ -62,12 +66,24 @@ def space_farmer_report(data: list, time_period: str):
 
         if key not in space_report:
             space_report[key] = [[], []]
-
+        try:
+            if line["farmer_reward_taken_by_gigahorse"] == "False":
+                xch_amount: float = int(line["farmer_reward"])  / 10**11
+                space_report[key][0].append(xch_amount)
+                print(space_report[key][0])
+                continue
+            
+            elif line["farmer_reward_taken_by_gigahorse"] == "True":
+                continue
+            
+        except KeyError as e:
+            ...
+        
         xch_amount: float = convert_mojo_to_xch(int(line["amount"]))
         usd_price: float = float(line["xch_usd"])
-
         space_report[key][0].append(xch_amount)
         space_report[key][1].append(usd_price)
+        
     logger.info(f'Completed spacefarmer dictionary with time period = {time_period}')
     
     return format_for_cointracker(space_report)
@@ -93,7 +109,7 @@ def format_for_cointracker(space_dict: dict) -> list:
             "Tag": "mined",
         }
         ct.append(cointrack)
-    return ct
+    return sorted(ct, key=lambda x: x["date"])
 
 
 def api_request(api: str, session: object) -> str:
@@ -160,10 +176,10 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
     return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
 
 
-def read_data(farmer_id: str) -> list:
+def read_data(file_name: str) -> list:
     data = []
-    logger.info(f"reading data from file {farmer_id}.csv")
-    with open(f"{farmer_id}.csv", "r") as file:
+    logger.info(f"reading data from file {file_name}")
+    with open(file_name, "r") as file:
         csv_reader = csv.DictReader(file)
         for row in csv_reader:
             data.append(row)
@@ -250,12 +266,26 @@ def main() -> None:
             logger.info("No Updates found.")
     
     if args.d:
-        data = read_data(farmer_id=farmer_id)
+        data = []
+        files = [f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv", 
+                 f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
+        
+        for file in files:
+            data.extend(read_data(file_name=file))
+        
+        data = sorted(data, key=lambda x: x["timestamp"])    
         data = space_farmer_report(data=data, time_period="d")
         file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_daily_cointracker.csv"
 
     if args.w:
-        data = read_data(farmer_id=farmer_id)
+        data = []
+        files = [f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv", 
+                 f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
+        
+        for file in files:
+            data.extend(read_data(file_name=file))
+            
+        data = sorted(data, key=lambda x: x["timestamp"])    
         data = space_farmer_report(data=data, time_period="w")
         file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_weekly_cointracker.csv"
     
