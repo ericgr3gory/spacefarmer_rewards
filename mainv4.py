@@ -70,7 +70,6 @@ def space_farmer_report(data: list, time_period: str):
             if line["farmer_reward_taken_by_gigahorse"] == "False":
                 xch_amount: float = int(line["farmer_reward"])  / 10**11
                 space_report[key][0].append(xch_amount)
-                print(space_report[key][0])
                 continue
             
             elif line["farmer_reward_taken_by_gigahorse"] == "True":
@@ -109,7 +108,7 @@ def format_for_cointracker(space_dict: dict) -> list:
             "Tag": "mined",
         }
         ct.append(cointrack)
-    #return sorted(ct, key=lambda x: x["date"])
+    
     return ct
 
 def api_request(api: str, session: object) -> str:
@@ -184,7 +183,7 @@ def read_data(file_name: str) -> list:
         for row in csv_reader:
             data.append(row)
 
-    return data
+    return sorted(data, key=lambda x: x["timestamp"])
 
 
 def convert_mojo_to_xch(mojos: int) -> float:
@@ -285,7 +284,7 @@ def main() -> None:
         for file in files:
             data.extend(read_data(file_name=file))
             
-        data = sorted(data, key=lambda x: x["timestamp"])    
+        data = sorted(data, key=lambda x: x["timestamp"])   
         data = space_farmer_report(data=data, time_period="w")
         file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_weekly_cointracker.csv"
     
