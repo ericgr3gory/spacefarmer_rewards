@@ -109,8 +109,8 @@ def format_for_cointracker(space_dict: dict) -> list:
             "Tag": "mined",
         }
         ct.append(cointrack)
-    return sorted(ct, key=lambda x: x["date"])
-
+    #return sorted(ct, key=lambda x: x["date"])
+    return ct
 
 def api_request(api: str, session: object) -> str:
 
