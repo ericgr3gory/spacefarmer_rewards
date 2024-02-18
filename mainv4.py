@@ -23,7 +23,7 @@ logging.basicConfig(
     filename=f"{TEMP_DIR}/space.log",
     encoding="utf-8",
     filemode="a",
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -167,23 +167,27 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
             for i in json_page["data"]:
                 time_utc = i["attributes"]["timestamp"]
                 if time_utc > synced:
+                    logger.info('TRUE')
                     data[key].append(i["attributes"])
-                    
                 else:
-                    return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
+                    logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
+                    break    
+            break
     
     return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
 
 
-def read_data(file_name: str) -> list:
-    data = []
-    logger.info(f"reading data from file {file_name}")
-    with open(file_name, "r") as file:
-        csv_reader = csv.DictReader(file)
-        for row in csv_reader:
-            data.append(row)
+def read_data(file_names: list) -> dict:
+    data = {}
+    for file_name in file_names:
+        data[file_name] = []
+        logger.info(f"reading data from file {file_name}")
+        with open(file_name, "r") as file:
+            csv_reader = csv.DictReader(file)
+            for row in csv_reader:
+                data[file_name].append(row)
 
-    return sorted(data, key=lambda x: x["timestamp"])
+    return data
 
 
 def convert_mojo_to_xch(mojos: int) -> float:
@@ -199,7 +203,11 @@ def convert_date_for_cointracker(date: int) -> str:
 
 def write_csv(file_name: str, data: list, file_mode: str) -> None:
     logger.info(f"writing csv file {file_name}")
-    field_names = list(data[0].keys())
+    try:
+        field_names = list(data[0].keys())
+    except IndexError as e:
+        logger.info(e)
+        sys.exit('No Updates to write to csv')
     with open(file_name, file_mode) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         if "w" in file_mode:
@@ -237,12 +245,15 @@ def arguments() -> argparse:
 
 def main() -> None:
     logger.info('starting main')
-    args = arguments()
+    args = arguments()       
 
     if args.l:
         farmer_id = args.l
     else:
         farmer_id = os.environ.get("FARMER_ID")
+
+    files = [f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv", 
+            f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
 
     if args.a:
         data = []
@@ -250,24 +261,27 @@ def main() -> None:
         logger.info(f"-a all mode running for framer id {farmer_id}")
 
     if args.u:
-        data = read_data(farmer_id=farmer_id)
+        data = read_data(file_names=files)
+        
+
         file_mode = "a"
         logger.info(f"-u update mode running for framer id {farmer_id}")
     
     if args.u or args.a:    
         pages = number_pages(farmer_id=farmer_id)
-        last_sync = time_of_last_sync(data)
-        if data := retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync):
-            for key in data:
-                write_csv(file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv", data=data[key], file_mode=file_mode)
+        print(pages)
+        last_sync = time_of_last_sync(data[files[1]])
+        print(last_sync)
+        data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync)
+        for key, value in data.items() :
+            print (key)
+
+        for key in data:
+            write_csv(file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv", data=data[key], file_mode=file_mode)
         
-        else:
-            logger.info("No Updates found.")
     
     if args.d:
         data = []
-        files = [f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv", 
-                 f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
         
         for file in files:
             data.extend(read_data(file_name=file))
@@ -278,8 +292,6 @@ def main() -> None:
 
     if args.w:
         data = []
-        files = [f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv", 
-                 f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
         
         for file in files:
             data.extend(read_data(file_name=file))
