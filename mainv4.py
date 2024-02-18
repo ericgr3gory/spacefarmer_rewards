@@ -172,7 +172,7 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
                 else:
                     logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
                     break    
-            break
+            
     
     return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
 
@@ -256,13 +256,13 @@ def main() -> None:
             f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv"]
 
     if args.a:
-        data = []
+        last_sync = 0
         file_mode = "w"
         logger.info(f"-a all mode running for framer id {farmer_id}")
 
     if args.u:
         data = read_data(file_names=files)
-        
+        last_sync = time_of_last_sync(data[files[1]])
 
         file_mode = "a"
         logger.info(f"-u update mode running for framer id {farmer_id}")
@@ -270,7 +270,9 @@ def main() -> None:
     if args.u or args.a:    
         pages = number_pages(farmer_id=farmer_id)
         print(pages)
-        last_sync = time_of_last_sync(data[files[1]])
+        
+        
+
         print(last_sync)
         data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync)
         for key, value in data.items() :
