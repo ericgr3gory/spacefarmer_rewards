@@ -160,7 +160,10 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
     session = requests.Session()
     for key in pages:
         data[key]= []
+        more_transaction = True
         for page in range(1, pages[key] + 1):
+            if more_transaction:
+                ...
             logger.info(f"getting data from{page}")
             page = api_request(api=f"{API}{farmer_id}{key}{page}", session=session)
             json_page = json.loads(page)
@@ -171,6 +174,7 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
                     data[key].append(i["attributes"])
                 else:
                     logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
+                    more_transaction = False
                     break    
             
     
