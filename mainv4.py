@@ -163,19 +163,20 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
         more_transaction = True
         for page in range(1, pages[key] + 1):
             if more_transaction:
-                ...
-            logger.info(f"getting data from{page}")
-            page = api_request(api=f"{API}{farmer_id}{key}{page}", session=session)
-            json_page = json.loads(page)
-            for i in json_page["data"]:
-                time_utc = i["attributes"]["timestamp"]
-                if time_utc > synced:
-                    logger.info('TRUE')
-                    data[key].append(i["attributes"])
-                else:
-                    logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
-                    more_transaction = False
-                    break    
+                logger.info(f"getting data from{page}")
+                page = api_request(api=f"{API}{farmer_id}{key}{page}", session=session)
+                json_page = json.loads(page)
+                for i in json_page["data"]:
+                    time_utc = i["attributes"]["timestamp"]
+                    if time_utc > synced:
+                        logger.info('TRUE')
+                        data[key].append(i["attributes"])
+                    else:
+                        logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
+                        more_transaction = False
+                        break
+            else:
+                break    
             
     
     return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
