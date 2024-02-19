@@ -169,10 +169,10 @@ def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
                 for i in json_page["data"]:
                     time_utc = i["attributes"]["timestamp"]
                     if time_utc > synced:
-                        logger.info('TRUE')
+                        logger.info('Updating..')
                         data[key].append(i["attributes"])
                     else:
-                        logger.info('FALSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE')
+                        logger.info('No More updates')
                         more_transaction = False
                         break
             else:
@@ -212,7 +212,7 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
         field_names = list(data[0].keys())
     except IndexError as e:
         logger.info(e)
-        sys.exit('No Updates to write to csv')
+        sys.exit(f'No Updates to write to csv for {file_name}')
     with open(file_name, file_mode) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         if "w" in file_mode:
