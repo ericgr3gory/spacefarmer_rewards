@@ -79,7 +79,8 @@ def space_farmer_payout(data: list):
                 continue
             
             elif line["farmer_reward_taken_by_gigahorse"] == "True":
-                ...
+                space_report[key][0].append(0)
+                space_report[key][2].append(int(line['timestamp']))
                 continue
             
         except KeyError as e:
