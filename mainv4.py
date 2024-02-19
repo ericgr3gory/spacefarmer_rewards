@@ -55,20 +55,31 @@ def week(d: int) -> str:
 
 def space_farmer_payout(data: list):
     space_report = {}
+
     logger.info(f'creating spacefarmer dictionary with normal payout schedule')
     for line in data:
-
-        key = day(line["transaction_id"])
+        try:
+            key = line["transaction_id"]
+        except KeyError as e:
+            ...
+        
+        try:
+            key = line["farmed_height"]
+        except KeyError as e:
+            ...
 
         if key not in space_report:
-            space_report[key] = [[], []]
+            space_report[key] = [[], [], []]
+
         try:
             if line["farmer_reward_taken_by_gigahorse"] == "False":
                 xch_amount: float = int(line["farmer_reward"])  / 10**11
                 space_report[key][0].append(xch_amount)
+                space_report[key][2].append(int(line['timestamp']))
                 continue
             
             elif line["farmer_reward_taken_by_gigahorse"] == "True":
+                ...
                 continue
             
         except KeyError as e:
@@ -78,10 +89,31 @@ def space_farmer_payout(data: list):
         usd_price: float = float(line["xch_usd"])
         space_report[key][0].append(xch_amount)
         space_report[key][1].append(usd_price)
+        space_report[key][2].append(int(line["timestamp"]))
         
     logger.info(f'Completed spacefarmer dictionary with normal payouts')
     
-    return format_for_cointracker(space_report)
+    ct = []
+
+    for k in space_report:
+        print(space_report[k])
+        date = max(space_report[k][2])
+        date = convert_date_for_cointracker(date)
+        sum_xch = sum(space_report[k][0])
+        #average_usd_price = sum(space_report[k][1]) / len(space_report[k][1])
+        #daily_usd_revenue = sum_xch * average_usd_price
+        cointrack = {
+            "date": date,
+            "Received Quantity": sum_xch,
+            "Received Currency": "XCH",
+            "Sent Quantity": None,
+            "Sent Currency": None,
+            "Fee Amount": None,
+            "Fee Currency": None,
+            "Tag": "mined",
+        }
+        ct.append(cointrack)
+    return ct
 
 
 
@@ -245,6 +277,7 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
     except IndexError as e:
         logger.info(e)
         logger.info(f'No Updates to write to csv for {file_name}')
+        sys.exit(f'No Updates to write to csv for {file_name}')
     with open(file_name, file_mode) as csvfile:
         logger.info(f'writing csv file {file_name}')
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
