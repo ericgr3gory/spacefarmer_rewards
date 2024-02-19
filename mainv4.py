@@ -53,6 +53,38 @@ def week(d: int) -> str:
     return sunday.strftime("%m/%d/%Y %H:%M:%S")
 
 
+def space_farmer_payout(data: list):
+    space_report = {}
+    logger.info(f'creating spacefarmer dictionary with normal payout schedule')
+    for line in data:
+
+        key = day(line["transaction_id"])
+
+        if key not in space_report:
+            space_report[key] = [[], []]
+        try:
+            if line["farmer_reward_taken_by_gigahorse"] == "False":
+                xch_amount: float = int(line["farmer_reward"])  / 10**11
+                space_report[key][0].append(xch_amount)
+                continue
+            
+            elif line["farmer_reward_taken_by_gigahorse"] == "True":
+                continue
+            
+        except KeyError as e:
+            ...
+        
+        xch_amount: float = convert_mojo_to_xch(int(line["amount"]))
+        usd_price: float = float(line["xch_usd"])
+        space_report[key][0].append(xch_amount)
+        space_report[key][1].append(usd_price)
+        
+    logger.info(f'Completed spacefarmer dictionary with normal payouts')
+    
+    return format_for_cointracker(space_report)
+
+
+
 def space_farmer_report(data: list, time_period: str):
     
     space_report = {}
@@ -212,8 +244,9 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
         field_names = list(data[0].keys())
     except IndexError as e:
         logger.info(e)
-        sys.exit(f'No Updates to write to csv for {file_name}')
+        logger.info(f'No Updates to write to csv for {file_name}')
     with open(file_name, file_mode) as csvfile:
+        logger.info(f'writing csv file {file_name}')
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
         if "w" in file_mode:
             writer.writeheader()
@@ -231,6 +264,7 @@ def arguments() -> argparse:
     parser.add_argument("-u", help="update payments from api", action="store_true")
     parser.add_argument("-w", help="weekly earning report", action="store_true")
     parser.add_argument("-d", help="daily earning report", action="store_true")
+    parser.add_argument("-p", help="space farmer normal payout report", action="store_true")
     args = parser.parse_args()
 
     if args.u and args.a:
@@ -240,7 +274,7 @@ def arguments() -> argparse:
         logger.warning(text)
         sys.exit(text)
 
-    if not args.u and not args.a and not args.w and not args.d:
+    if not args.u and not args.a and not args.w and not args.d and not args.p:
         text = "need to either update payments or retrieve all payments please pick only one."
         logger.warning(text)
         sys.exit(text)
@@ -274,40 +308,49 @@ def main() -> None:
     
     if args.u or args.a:    
         pages = number_pages(farmer_id=farmer_id)
-        print(pages)
-        
-        
-
-        print(last_sync)
+        logger.info(f"number of pages available - {pages}")
+        logger.info(f"Time stamp of last sync - {last_sync}")
         data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync)
-        for key, value in data.items() :
-            print (key)
 
         for key in data:
             write_csv(file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv", data=data[key], file_mode=file_mode)
         
-    
+    if args.p:
+        data = read_data(file_names=files)
+        data_list = []
+        for key in data:
+            data_list.extend(data[key])
+
+        
+        data_list = sorted(data_list, key=lambda x: x["timestamp"])    
+        data = space_farmer_payout(data=data_list)
+        file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_normal_cointracker.csv"
+
+
     if args.d:
-        data = []
+        data = (read_data(file_names=files))
+        data_list = []
+        for key in data:
+            data_list.extend(data[key])
+
         
-        for file in files:
-            data.extend(read_data(file_name=file))
-        
-        data = sorted(data, key=lambda x: x["timestamp"])    
-        data = space_farmer_report(data=data, time_period="d")
+        data_list = sorted(data_list, key=lambda x: x["timestamp"])    
+        data = space_farmer_report(data=data_list, time_period="d")
         file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_daily_cointracker.csv"
 
     if args.w:
-        data = []
+        data_list = []
         
-        for file in files:
-            data.extend(read_data(file_name=file))
+        data = (read_data(file_names=files))
+        for key in data:
+            data_list.extend(data[key])
+
             
-        data = sorted(data, key=lambda x: x["timestamp"])   
-        data = space_farmer_report(data=data, time_period="w")
+        data_list = sorted(data_list, key=lambda x: x["timestamp"])   
+        data = space_farmer_report(data=data_list, time_period="w")
         file_name = f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_weekly_cointracker.csv"
     
-    if args.d or args.w:
+    if args.d or args.w or args.p:
         write_csv(
         file_name=file_name,
         data=data,
