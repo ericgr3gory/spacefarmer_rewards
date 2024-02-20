@@ -82,7 +82,7 @@ def space_farmer_payout(data: list):
 
             if not farmer_reward:
                 space_report[key][0].append(0)
-                space_report[key][2].append(int(line['timestamp']))
+                space_report[key][2].append(int(line["timestamp"]))
                 continue
 
         xch_amount: float = convert_mojo_to_xch(int(line["amount"]))
@@ -96,7 +96,7 @@ def space_farmer_payout(data: list):
     ct = []
 
     for k in space_report:
-        
+
         date = max(space_report[k][2])
         date = convert_date_for_cointracker(date)
         sum_xch = sum(space_report[k][0])
@@ -288,10 +288,10 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
         writer.writerows(data)
 
 
-def check_transaction_id(data: list)-> list:
+def check_transaction_id(data: list) -> list:
     new_list = []
     for line in data:
-        
+
         if "transaction_id" in line:
             tid = line["transaction_id"]
             if tid == None:
@@ -300,10 +300,8 @@ def check_transaction_id(data: list)-> list:
                 new_list.append(line)
         else:
             new_list.append(line)
-    
+
     return new_list
-
-
 
 
 def arguments() -> argparse:
