@@ -62,33 +62,28 @@ def space_farmer_payout(data: list):
 
     logger.info(f"creating spacefarmer dictionary with normal payout schedule")
     for line in data:
-        try:
+        if "transaction_id" in line:
             key = line["transaction_id"]
-        except KeyError as e:
-            ...
 
-        try:
+        if "farmed_height" in line:
             key = line["farmed_height"]
-        except KeyError as e:
-            ...
 
         if key not in space_report:
             space_report[key] = [[], [], []]
 
-        try:
-            if line["farmer_reward_taken_by_gigahorse"] == "False":
+        if "farmer_reward_taken_by_gigahorse" in line:
+            farmer_reward = bool(line["farmer_reward_taken_by_gigahorse"])
+
+            if farmer_reward:
                 xch_amount: float = int(line["farmer_reward"]) / 10**11
                 space_report[key][0].append(xch_amount)
                 space_report[key][2].append(int(line["timestamp"]))
                 continue
 
-            elif line["farmer_reward_taken_by_gigahorse"] == "True":
+            if not farmer_reward:
                 space_report[key][0].append(0)
                 space_report[key][2].append(int(line['timestamp']))
                 continue
-
-        except KeyError as e:
-            ...
 
         xch_amount: float = convert_mojo_to_xch(int(line["amount"]))
         usd_price: float = float(line["xch_usd"])
@@ -101,12 +96,11 @@ def space_farmer_payout(data: list):
     ct = []
 
     for k in space_report:
-        print(space_report[k])
+        
         date = max(space_report[k][2])
         date = convert_date_for_cointracker(date)
         sum_xch = sum(space_report[k][0])
-        # average_usd_price = sum(space_report[k][1]) / len(space_report[k][1])
-        # daily_usd_revenue = sum_xch * average_usd_price
+
         cointrack = {
             "date": date,
             "Received Quantity": sum_xch,
@@ -209,7 +203,7 @@ def number_pages(farmer_id: str) -> dict:
         json_data = json.loads(data)
         key = a
         pages[key] = int(json_data["links"]["total_pages"])
-        # logger.info(f"number of pages found {json_data["links"]["total_pages"]}")
+        logger.info(f"number of pages found {pages[key]}")
     return pages
 
 
@@ -294,6 +288,24 @@ def write_csv(file_name: str, data: list, file_mode: str) -> None:
         writer.writerows(data)
 
 
+def check_transaction_id(data: list)-> list:
+    new_list = []
+    for line in data:
+        
+        if "transaction_id" in line:
+            tid = line["transaction_id"]
+            if tid == None:
+                ...
+            if tid:
+                new_list.append(line)
+        else:
+            new_list.append(line)
+    
+    return new_list
+
+
+
+
 def arguments() -> argparse:
     logger.info("Retrieving arguments")
     parser = argparse.ArgumentParser(
@@ -357,9 +369,10 @@ def main() -> None:
         data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync)
 
         for key in data:
+            d = check_transaction_id(data[key])
             write_csv(
                 file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv",
-                data=data[key],
+                data=d,
                 file_mode=file_mode,
             )
 
