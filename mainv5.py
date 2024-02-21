@@ -11,9 +11,7 @@ import logging
 
 load_dotenv()
 
-API = "https://spacefarmers.io/api/farmers/"
-API_PAYOUTS = "/payouts?page="
-API_BLOCKS = "/blocks?page="
+
 TEMP_DIR = os.environ.get("TEMP_DIR")
 HOME = os.environ.get("HOME")
 CURRENT_DIR = os.getcwd()
@@ -30,12 +28,21 @@ logger = logging.getLogger(__name__)
 
 
 
-class APIHandler():
-
-    def api_request(api: str, session: object) -> str:
+class APIHandler:
+    
+    def __init__(self, synced: int) -> None:
+        self.session = requests.Session()
+        self.farmer_id = os.environ.get("FARMER_ID")
+        self.pages = self.number_pages(self.farmer_id)
+        self.api_prefix = os.environ.get("API")
+        self.api_blocks = os.environ.get("API_BLOCKS")
+        self.api_payouts = os.environ.get("API_PAYOUTS")
+        self.synced = synced
+    
+    def api_request(self, api) -> str:
 
         for _ in range(3):
-            r = session.get(api)
+            r = self.session.get(api)
             logger.info(f"connecting to {api}")
             if r.status_code == 200:
                 logger.info(f"connected to {api}")
@@ -49,34 +56,46 @@ class APIHandler():
         sys.exit(message)
 
 
-    def number_pages(farmer_id: str) -> dict:
+    def number_pages(self) -> dict:
         pages = {}
         logger.info("finding number of pages containing payout data")
-        session = requests.Session()
-        apis = [API_PAYOUTS, API_BLOCKS]
+        apis = [self.api_payouts, self.api_blocks]
         for a in apis:
-            api = f"{API}{farmer_id}{a}1"
-            data = api_request(api=api, session=session)
+            api = f"{self.api_prefix}{self.farmer_id}{a}1"
+            data = self.api_request(api)
             json_data = json.loads(data)
-            key = a
-            pages[key] = int(json_data["links"]["total_pages"])
-            logger.info(f"number of pages found {pages[key]}")
+            pages[a] = int(json_data["links"]["total_pages"])
+            logger.info(f"number of pages found {pages[a]}")
         return pages
 
-    def retrieve_data(farmer_id: str, pages: dict, synced: int) -> dict:
+
+    def is_update_needed(self, line):
+        time_utc = line["attributes"]["timestamp"]
+        if time_utc > self.synced:
+            return True
+        else:
+            return False
+    
+    def sort_data(self, data):
+        return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
+
+
+
+    def retrieve_data(self) -> dict:
         data = {}
-        session = requests.Session()
-        for key in pages:
+        
+        for key in self.pages:
             data[key] = []
             more_transaction = True
-            for page in range(1, pages[key] + 1):
+            for page in range(1, self.pages[key] + 1):
                 if more_transaction:
                     logger.info(f"getting data from{page}")
-                    page = api_request(api=f"{API}{farmer_id}{key}{page}", session=session)
+                    page = self.api_request(api=f"{self.api_prefix}{self.farmer_id}{key}{page}")
                     json_page = json.loads(page)
+                    
                     for i in json_page["data"]:
-                        time_utc = i["attributes"]["timestamp"]
-                        if time_utc > synced:
+                        
+                        if self.is_update_needed(i):
                             logger.info("Updating..")
                             data[key].append(i["attributes"])
                         else:
@@ -86,9 +105,10 @@ class APIHandler():
                 else:
                     break
 
-        return {
-            key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()
-        }
+        return self.sort_data(data)
+    
+
+
 
 
 class FileManager():
@@ -121,8 +141,19 @@ class FileManager():
 
             writer.writerows(data)
 
-class DataProcessor():
+class DataProcessor:
     ...
+    def time_of_last_sync(data: list) -> int:
+        logger.info("retrieving time and date of last syc")
+        try:
+            return int(data[-1]["timestamp"])
+
+        except IndexError:
+            logger.info(
+                "no data to retreive sync date and time from starting from begining"
+            )
+            return 0
+    
     def convert_mojo_to_xch(mojos: int) -> float:
         logger.info("converting mojo to xch")
         return int(mojos) / 10**12
@@ -300,16 +331,7 @@ class ReportGenerator():
 
 
 
-    def time_of_last_sync(data: list) -> int:
-        logger.info("retrieving time and date of last syc")
-        try:
-            return int(data[-1]["timestamp"])
-
-        except IndexError:
-            logger.info(
-                "no data to retreive sync date and time from starting from begining"
-            )
-            return 0
+    
 
 
 
