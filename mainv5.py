@@ -11,11 +11,8 @@ import logging
 
 load_dotenv()
 
-
 TEMP_DIR = os.environ.get("TEMP_DIR")
-HOME = os.environ.get("HOME")
 CURRENT_DIR = os.getcwd()
-
 
 logging.basicConfig(
     filename=f"{TEMP_DIR}/space.log",
@@ -33,12 +30,19 @@ class APIHandler:
     def __init__(self, synced: int) -> None:
         self.session = requests.Session()
         self.farmer_id = os.environ.get("FARMER_ID")
-        self.pages = self.number_pages(self.farmer_id)
         self.api_prefix = os.environ.get("API")
         self.api_blocks = os.environ.get("API_BLOCKS")
         self.api_payouts = os.environ.get("API_PAYOUTS")
         self.synced = synced
+        
+    def payouts(self):
+        data = self.retrieve_data(api_endpoint_suffix=self.api_payouts)
+        return self.sort_data(data)
     
+    def blocks(self):
+        data = self.retrieve_data(api_endpoint_suffix=self.api_blocks)
+        return self.sort_data(data)
+
     def api_request(self, api) -> str:
 
         for _ in range(3):
@@ -56,17 +60,14 @@ class APIHandler:
         sys.exit(message)
 
 
-    def number_pages(self) -> dict:
-        pages = {}
+    def number_pages(self, api_endpoint_suffix)-> int:
         logger.info("finding number of pages containing payout data")
-        apis = [self.api_payouts, self.api_blocks]
-        for a in apis:
-            api = f"{self.api_prefix}{self.farmer_id}{a}1"
-            data = self.api_request(api)
-            json_data = json.loads(data)
-            pages[a] = int(json_data["links"]["total_pages"])
-            logger.info(f"number of pages found {pages[a]}")
-        return pages
+        api = f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}1"
+        data = self.api_request(api)
+        json_data = json.loads(data)
+        page = int(json_data["links"]["total_pages"])
+        logger.info(f"number of pages found {page}")
+        return page
 
 
     def is_update_needed(self, line):
@@ -77,69 +78,98 @@ class APIHandler:
             return False
     
     def sort_data(self, data):
-        return {key: sorted(value, key=lambda x: x["timestamp"]) for key, value in data.items()}
+        print(sorted(data, key=lambda x: x["timestamp"]))
+        return sorted(data, key=lambda x: x["timestamp"])
 
 
 
-    def retrieve_data(self) -> dict:
-        data = {}
-        
-        for key in self.pages:
-            data[key] = []
-            more_transaction = True
-            for page in range(1, self.pages[key] + 1):
-                if more_transaction:
-                    logger.info(f"getting data from{page}")
-                    page = self.api_request(api=f"{self.api_prefix}{self.farmer_id}{key}{page}")
-                    json_page = json.loads(page)
+    def retrieve_data(self, api_endpoint_suffix:str ) -> dict:
+        data = []
+        more_transaction = True
+        pages = self.number_pages(api_endpoint_suffix=api_endpoint_suffix)
+        for page in range(1, pages + 1):
+            if more_transaction:
+                logger.info(f"getting data from{page}")
+                page = self.api_request(api=f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}{page}")
+                json_page = json.loads(page)
                     
-                    for i in json_page["data"]:
+                for i in json_page["data"]:
                         
-                        if self.is_update_needed(i):
-                            logger.info("Updating..")
-                            data[key].append(i["attributes"])
-                        else:
-                            logger.info("No More updates")
-                            more_transaction = False
-                            break
-                else:
-                    break
+                    if self.is_update_needed(i):
+                        logger.info("Updating..")
+                        data.append(i["attributes"])
+                    else:
+                        logger.info("No More updates")
+                        more_transaction = False
+                        break
+            else:
+                break
 
-        return self.sort_data(data)
+        return data
     
 
 
 
 
 class FileManager():
-    ...
-    def read_data(file_names: list) -> dict:
-        data = {}
-        for file_name in file_names:
-            data[file_name] = []
-            logger.info(f"reading data from file {file_name}")
-            with open(file_name, "r") as file:
-                csv_reader = csv.DictReader(file)
-                for row in csv_reader:
-                    data[file_name].append(row)
+
+    def __init__(self, farmer_id: str, report_type: str) -> None:
+        
+        self.HOME = os.environ.get("HOME")
+        
+        self.api_blocks = os.environ.get("API_BLOCKS")
+        self.api_payouts = os.environ.get("API_PAYOUTS")
+        self.farmer_id : str = farmer_id
+        self.file :str = self.file_name(report_type) 
+        if 'update' in report_type:
+            self.data: list = self.read_data()
+        else:
+            self.data: list = []
+    
+    def file_name(self, report_type: str)-> str:
+        file_prefix = f'{self.farmer_id[:4]}_{self.farmer_id[-4:]}'
+        file_extension = f'.csv'
+        file_names = {
+                    'update_blocks': f"-{self.api_blocks[1:6]}",
+                    'update_payouts': f"-{self.api_payouts[1:6]}",
+                    'normal_cointracker': f"-normal_cointracker",
+                    'daily_cointracker': f"-daily_cointracker",
+                    'weekly_cointracker': f"weekly_cointracker",
+                    }
+        return f'{file_prefix}{file_names[report_type]}{file_extension}'
+    
+    def file_mode(self):
+        if 'update' in self.file:
+            return 'a'
+        else:
+            return 'w'
+        
+    def read_data(self) -> list:
+        data = []
+
+        logger.info(f"reading data from file {self.file}")
+        with open(file=self.file, mode='r') as f:
+            csv_reader = csv.DictReader(f)
+            for row in csv_reader:
+                data.append(row)
 
         return data
     
-    def write_csv(file_name: str, data: list, file_mode: str) -> None:
-        logger.info(f"writing csv file {file_name}")
+    def write_csv(self) -> None:
+        logger.info(f"writing csv file {self.file}")
         try:
-            field_names = list(data[0].keys())
+            field_names = self.data
         except IndexError as e:
             logger.info(e)
-            logger.info(f"No Updates to write to csv for {file_name}")
-            sys.exit(f"No Updates to write to csv for {file_name}")
-        with open(file_name, file_mode) as csvfile:
-            logger.info(f"writing csv file {file_name}")
+            logger.info(f"No Updates to write to csv for {self.file}")
+            sys.exit(f"No Updates to write to csv for {self.file}")
+        with open(file=self.file, mode=self.file_mode()) as csvfile:
+            logger.info(f"writing csv file {self.file}")
             writer = csv.DictWriter(csvfile, fieldnames=field_names)
-            if "w" in file_mode:
+            if "w" in self.file_mode():
                 writer.writeheader()
 
-            writer.writerows(data)
+            writer.writerows(self.data)
 
 class DataProcessor:
     ...
@@ -377,88 +407,9 @@ def arguments() -> argparse:
 
 def main() -> None:
     logger.info("starting main")
-    args = arguments()
-
-    if args.l:
-        farmer_id = args.l
-    else:
-        farmer_id = os.environ.get("FARMER_ID")
-
-    files = [
-        f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_BLOCKS[1:6]}.csv",
-        f"{farmer_id[:4]}---{farmer_id[-4:]}-{API_PAYOUTS[1:6]}.csv",
-    ]
-
-    if args.a:
-        last_sync = 0
-        file_mode = "w"
-        logger.info(f"-a all mode running for framer id {farmer_id}")
-
-    if args.u:
-        data = read_data(file_names=files)
-        last_sync = time_of_last_sync(data[files[1]])
-
-        file_mode = "a"
-        logger.info(f"-u update mode running for framer id {farmer_id}")
-
-    if args.u or args.a:
-        pages = number_pages(farmer_id=farmer_id)
-        logger.info(f"number of pages available - {pages}")
-        logger.info(f"Time stamp of last sync - {last_sync}")
-        data = retrieve_data(farmer_id=farmer_id, pages=pages, synced=last_sync)
-
-        for key in data:
-            d = check_transaction_id(data[key])
-            write_csv(
-                file_name=f"{farmer_id[:4]}---{farmer_id[-4:]}-{key[1:6]}.csv",
-                data=d,
-                file_mode=file_mode,
-            )
-
-    if args.p:
-        data = read_data(file_names=files)
-        data_list = []
-        for key in data:
-            data_list.extend(data[key])
-
-        data_list = sorted(data_list, key=lambda x: x["timestamp"])
-        data = space_farmer_payout(data=data_list)
-        file_name = (
-            f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_normal_cointracker.csv"
-        )
-
-    if args.d:
-        data = read_data(file_names=files)
-        data_list = []
-        for key in data:
-            data_list.extend(data[key])
-
-        data_list = sorted(data_list, key=lambda x: x["timestamp"])
-        data = space_farmer_report(data=data_list, time_period="d")
-        file_name = (
-            f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_daily_cointracker.csv"
-        )
-
-    if args.w:
-        data_list = []
-
-        data = read_data(file_names=files)
-        for key in data:
-            data_list.extend(data[key])
-
-        data_list = sorted(data_list, key=lambda x: x["timestamp"])
-        data = space_farmer_report(data=data_list, time_period="w")
-        file_name = (
-            f"{CURRENT_DIR}/{farmer_id[:4]}---{farmer_id[-4:]}_weekly_cointracker.csv"
-        )
-
-    if args.d or args.w or args.p:
-        write_csv(
-            file_name=file_name,
-            data=data,
-            file_mode="w",
-        )
-
-
+    # args = arguments()
+    
+    ap = APIHandler(synced=1708368372)
+    ap.payouts()
 if __name__ == "__main__":
     main()
