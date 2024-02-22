@@ -3,3 +3,4 @@
 .env
 714d*.csv
 e357*.csv
+*.pyc

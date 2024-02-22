@@ -1,6 +1,4 @@
-import requests
 from datetime import datetime, date, timedelta
-import json
 import argparse
 import csv
 import sys
@@ -8,6 +6,7 @@ from dotenv import load_dotenv
 import os
 from time import sleep
 import logging
+from api_handler import APIHandler
 
 load_dotenv()
 
@@ -24,155 +23,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
-class APIHandler:
-    
-    def __init__(self, synced: int) -> None:
-        self.session = requests.Session()
-        self.farmer_id = os.environ.get("FARMER_ID")
-        self.api_prefix = os.environ.get("API")
-        self.api_blocks = os.environ.get("API_BLOCKS")
-        self.api_payouts = os.environ.get("API_PAYOUTS")
-        self.synced = synced
-        
-    def payouts(self):
-        data = self.retrieve_data(api_endpoint_suffix=self.api_payouts)
-        return self.sort_data(data)
-    
-    def blocks(self):
-        data = self.retrieve_data(api_endpoint_suffix=self.api_blocks)
-        return self.sort_data(data)
-
-    def api_request(self, api) -> str:
-
-        for _ in range(3):
-            r = self.session.get(api)
-            logger.info(f"connecting to {api}")
-            if r.status_code == 200:
-                logger.info(f"connected to {api}")
-                return r.text
-            else:
-                logger.info(f"connection failed to {api}")
-                logger.info(f"trying again")
-                sleep(3)
-        message = "three attempts were made to contact api all failed.  Try again later..."
-        logger.warning(message)
-        sys.exit(message)
-
-
-    def number_pages(self, api_endpoint_suffix)-> int:
-        logger.info("finding number of pages containing payout data")
-        api = f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}1"
-        data = self.api_request(api)
-        json_data = json.loads(data)
-        page = int(json_data["links"]["total_pages"])
-        logger.info(f"number of pages found {page}")
-        return page
-
-
-    def is_update_needed(self, line):
-        time_utc = line["attributes"]["timestamp"]
-        if time_utc > self.synced:
-            return True
-        else:
-            return False
-    
-    def sort_data(self, data):
-        print(sorted(data, key=lambda x: x["timestamp"]))
-        return sorted(data, key=lambda x: x["timestamp"])
-
-
-
-    def retrieve_data(self, api_endpoint_suffix:str ) -> dict:
-        data = []
-        more_transaction = True
-        pages = self.number_pages(api_endpoint_suffix=api_endpoint_suffix)
-        for page in range(1, pages + 1):
-            if more_transaction:
-                logger.info(f"getting data from{page}")
-                page = self.api_request(api=f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}{page}")
-                json_page = json.loads(page)
-                    
-                for i in json_page["data"]:
-                        
-                    if self.is_update_needed(i):
-                        logger.info("Updating..")
-                        data.append(i["attributes"])
-                    else:
-                        logger.info("No More updates")
-                        more_transaction = False
-                        break
-            else:
-                break
-
-        return data
-    
-
-
-
-
-class FileManager():
-
-    def __init__(self, farmer_id: str, report_type: str) -> None:
-        
-        self.HOME = os.environ.get("HOME")
-        
-        self.api_blocks = os.environ.get("API_BLOCKS")
-        self.api_payouts = os.environ.get("API_PAYOUTS")
-        self.farmer_id : str = farmer_id
-        self.file :str = self.file_name(report_type) 
-        if 'update' in report_type:
-            self.data: list = self.read_data()
-        else:
-            self.data: list = []
-    
-    def file_name(self, report_type: str)-> str:
-        file_prefix = f'{self.farmer_id[:4]}_{self.farmer_id[-4:]}'
-        file_extension = f'.csv'
-        file_names = {
-                    'update_blocks': f"-{self.api_blocks[1:6]}",
-                    'update_payouts': f"-{self.api_payouts[1:6]}",
-                    'normal_cointracker': f"-normal_cointracker",
-                    'daily_cointracker': f"-daily_cointracker",
-                    'weekly_cointracker': f"weekly_cointracker",
-                    }
-        return f'{file_prefix}{file_names[report_type]}{file_extension}'
-    
-    def file_mode(self):
-        if 'update' in self.file:
-            return 'a'
-        else:
-            return 'w'
-        
-    def read_data(self) -> list:
-        data = []
-
-        logger.info(f"reading data from file {self.file}")
-        with open(file=self.file, mode='r') as f:
-            csv_reader = csv.DictReader(f)
-            for row in csv_reader:
-                data.append(row)
-
-        return data
-    
-    def write_csv(self) -> None:
-        logger.info(f"writing csv file {self.file}")
-        try:
-            field_names = self.data
-        except IndexError as e:
-            logger.info(e)
-            logger.info(f"No Updates to write to csv for {self.file}")
-            sys.exit(f"No Updates to write to csv for {self.file}")
-        with open(file=self.file, mode=self.file_mode()) as csvfile:
-            logger.info(f"writing csv file {self.file}")
-            writer = csv.DictWriter(csvfile, fieldnames=field_names)
-            if "w" in self.file_mode():
-                writer.writeheader()
-
-            writer.writerows(self.data)
-
 class DataProcessor:
-    ...
+    
     def time_of_last_sync(data: list) -> int:
         logger.info("retrieving time and date of last syc")
         try:
@@ -359,22 +211,6 @@ class ReportGenerator():
 
 
 
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
 def arguments() -> argparse:
     logger.info("Retrieving arguments")
     parser = argparse.ArgumentParser(
@@ -409,7 +245,12 @@ def main() -> None:
     logger.info("starting main")
     # args = arguments()
     
-    ap = APIHandler(synced=1708368372)
-    ap.payouts()
+    #ap = APIHandler(synced=1708368372)
+    a = APIHandler()
+    a.blocks(sync_d=1708368372)
+    fm = FileManager()
+    data = fm.read_all_transactions()
+    print(data)
+    
 if __name__ == "__main__":
     main()
