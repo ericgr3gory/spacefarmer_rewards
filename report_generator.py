@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 class ReportGenerator:
     
     def __init__(self, data: list) -> None:
-        self.batch = self.batch_pay(data)
-        self.daily_earnings = self.time_based_report(data=data, time_period='d')
-        self.weekly_earnings = self.time_based_report(data=data, time_period='w')
+        self.batch:list = self.batch_pay(data)
+        self.daily_earnings:list = self.time_based_report(data=data, time_period='d')
+        self.weekly_earnings:list = self.time_based_report(data=data, time_period='w')
 
 
     def batch_pay(self, data: list)-> dict:
@@ -48,7 +48,7 @@ class ReportGenerator:
                 batch[key] = [[], [], []]
 
             if "farmer_reward_taken_by_gigahorse" in line:
-                farmer_reward = bool(line["farmer_reward_taken_by_gigahorse"])
+                farmer_reward:bool = bool(line["farmer_reward_taken_by_gigahorse"])
 
                 if farmer_reward:
                     xch_amount: float = int(line["farmer_reward"]) / 10**11
@@ -71,18 +71,18 @@ class ReportGenerator:
         
         return self.batch_payout_parsed_ct(batch)
     
-    def batch_payout_parsed_ct(self, batch_pay_data):
+    def batch_payout_parsed_ct(self, batch_pay_data:list):
+        '''
+        create a list with data parsed for cointracker
         '''
         
-        '''
-        
-        cointracker_data = []
+        cointracker_data:list = []
 
         for batch in batch_pay_data:
             
-            date = max(batch_pay_data[batch][2])
-            date = Data.convert_date_for_cointracker(date)
-            sum_xch = sum(batch_pay_data[batch][0])
+            date:int = max(batch_pay_data[batch][2])
+            date:str = Data.convert_date_for_cointracker(date)
+            sum_xch:float = sum(batch_pay_data[batch][0])
 
             cointrack = {
                 "date": date,
@@ -109,9 +109,9 @@ class ReportGenerator:
         logger.info(f"creating spacefarmer dictionary with time period = {time_period}")
         for line in data:
 
-            if time_period == "w":
+            if "w" in time_period:
                 key = Data.week(int(line["timestamp"]))
-            elif time_period == "d":
+            elif "d" in time_period:
                 key = Data.day(int(line["timestamp"]))
 
             if key not in space_report:
@@ -139,16 +139,16 @@ class ReportGenerator:
 
 
     def format_for_cointracker(self, space_dict: dict) -> list:
-        ct = []
+        ct:list = []
 
         for k in space_dict:
-            sum_xch = sum(space_dict[k][0])
-            average_usd_price = sum(space_dict[k][1]) / len(space_dict[k][1])
-            daily_usd_revenue = sum_xch * average_usd_price
+            sum_xch:float = sum(space_dict[k][0])
+            average_usd_price:float = sum(space_dict[k][1]) / len(space_dict[k][1])
+            daily_usd_revenue:float = sum_xch * average_usd_price
             logger.info(
                 f"{k}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}"
             )
-            cointrack = {
+            cointrack:dict = {
                 "date": k,
                 "Received Quantity": sum_xch,
                 "Received Currency": "XCH",

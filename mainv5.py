@@ -94,6 +94,7 @@ def main() -> None:
         data = sorted(data_list, key=lambda x: x["timestamp"])
         reports = ReportGenerator(data=data)
         FileManager(action='w', report_type='batch_cointracker', data=reports.batch)
+        
 
 if __name__ == "__main__":
     main()
