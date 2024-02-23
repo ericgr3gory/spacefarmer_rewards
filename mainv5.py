@@ -8,6 +8,7 @@ from file_managment import FileManager
 from data_parser import DataParser as Data
 from api_handler import APIHandler
 from report_generator import ReportGenerator
+
 load_dotenv()
 
 TEMP_DIR = os.environ.get("TEMP_DIR")
@@ -70,17 +71,17 @@ def main() -> None:
         logger.info(f"-a all mode running for framer id {farmer_id}")
         blocks = space_api.blocks()
         payouts = space_api.payouts()
-        blocks = Data.check_transaction_id(blocks)
+        blocks = Data.check_transaction_id(payouts)
         FileManager(action='w', report_type='payouts', data=payouts)
         FileManager(action='w', report_type='blocks', data=blocks)
         
     if args.u:
         logger.info(f"-u update mode running for framer id {farmer_id}")
-        data = FileManager(report_type='read').all_transactions 
-        last = Data.time_of_last_sync(data['payouts'][0])
+        data = FileManager(report_type='read').all_transactions
+        last = Data.time_of_last_sync(data['payouts'])
         blocks = space_api.blocks(sync_d=last)
-        blocks = Data.check_transaction_id(blocks)
         payouts = space_api.payouts(sync_d=last)
+        payouts = Data.check_transaction_id(payouts)
         FileManager(action='a', report_type='payouts', data=payouts)
         FileManager(action='a', report_type='blocks', data=blocks)
 
@@ -88,10 +89,10 @@ def main() -> None:
         data = FileManager(report_type='read').all_transactions
         data_list = []
         for key in data:
-            data_list.extend(data[key][0])
+            data_list.extend(data[key])
 
-        data_list = sorted(data_list, key=lambda x: x["timestamp"])
-        reports = ReportGenerator(data=data_list)
+        data = sorted(data_list, key=lambda x: x["timestamp"])
+        reports = ReportGenerator(data=data)
         FileManager(action='w', report_type='batch_cointracker', data=reports.batch)
 
 if __name__ == "__main__":

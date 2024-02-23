@@ -47,11 +47,12 @@ class FileManager():
     
     
     def read_all_transactions(self)->dict:
-        all_trans ={'blocks': [], 'payouts': []}
-        for t in all_trans:
-            file: str = self.file_naming(t)
+        keys =['blocks', 'payouts']
+        all_trans = {}
+        for k in keys:
+            file: str = self.file_naming(k)
             data: list = self.read_data(file=file)
-            all_trans[t].append(data)
+            all_trans[k] = data
         
         return all_trans
 
@@ -61,7 +62,7 @@ class FileManager():
         file_extension = f'.csv'
         file_names = {
                     'blocks': f"-{self.api_blocks[1:6]}",
-                    'payouts': f"-{self.api_payouts[1:6]}",
+                    'payouts': f"-{self.api_payouts[1:7]}",
                     'batch_cointracker': f"-batch_cointracker",
                     'daily_cointracker': f"-daily_cointracker",
                     'weekly_cointracker': f"weekly_cointracker",

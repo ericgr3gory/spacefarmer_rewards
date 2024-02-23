@@ -84,15 +84,15 @@ class DataParser:
     
 
     def check_transaction_id(data: list) -> list:
+        print('checking')
         new_list = []
         for line in data:
 
             if "transaction_id" in line:
-                tid = line["transaction_id"]
-                if tid == None:
-                    ...
-                if tid:
+                
+                if line["transaction_id"]:
                     new_list.append(line)
+                    
             else:
                 new_list.append(line)
 
