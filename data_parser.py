@@ -82,8 +82,8 @@ class DataParser:
         )
         return sunday.strftime("%m/%d/%Y %H:%M:%S")
     
-    
-    def check_transaction_id(self, data: list) -> list:
+
+    def check_transaction_id(data: list) -> list:
         new_list = []
         for line in data:
 
