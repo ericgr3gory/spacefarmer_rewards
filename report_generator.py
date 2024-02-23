@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from data_parser import DataParser as Data
+
 load_dotenv()
 
 TEMP_DIR = os.environ.get("TEMP_DIR")
@@ -17,23 +18,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
-
 class ReportGenerator:
-    
+
     def __init__(self, data: list) -> None:
-        self.batch:list = self.batch_pay(data)
-        self.daily_earnings:list = self.time_based_report(data=data, time_period='d')
-        self.weekly_earnings:list = self.time_based_report(data=data, time_period='w')
+        self.batch: list = self.batch_pay(data)
+        self.daily_earnings: list = self.time_based_report(data=data, time_period="d")
+        self.weekly_earnings: list = self.time_based_report(data=data, time_period="w")
 
-
-    def batch_pay(self, data: list)-> dict:
-        '''
-        creates a dictionary using keys based on payout transaction ID for normal payouts or farmed height for block rewards 
+    def batch_pay(self, data: list) -> dict:
+        """
+        creates a dictionary using keys based on payout transaction ID for normal payouts or farmed height for block rewards
         each key has three lists one for xch, one for usd price and one for timestamp
         this dictionay can be used to create a report based on when spacefarmers sent payouts to your wallet and when block rewards were sent to your wallet
         dates and amounts of xch should match the data viewable on the payouts page of spacefarmers.io.  it should mtach the batch payouts.
-        '''
+        """
         batch: dict = {}
 
         logger.info(f"creating spacefarmer dictionary with batch payout schedule")
@@ -48,7 +46,7 @@ class ReportGenerator:
                 batch[key] = [[], [], []]
 
             if "farmer_reward_taken_by_gigahorse" in line:
-                farmer_reward:bool = bool(line["farmer_reward_taken_by_gigahorse"])
+                farmer_reward: bool = bool(line["farmer_reward_taken_by_gigahorse"])
 
                 if farmer_reward:
                     xch_amount: float = int(line["farmer_reward"]) / 10**11
@@ -58,7 +56,7 @@ class ReportGenerator:
 
                 if not farmer_reward:
                     batch[key][0].append(0)
-                    batch[key][2].append(int(line['timestamp']))
+                    batch[key][2].append(int(line["timestamp"]))
                     continue
 
             xch_amount: float = Data.convert_mojo_to_xch(int(line["amount"]))
@@ -68,21 +66,21 @@ class ReportGenerator:
             batch[key][2].append(int(line["timestamp"]))
 
         logger.info(f"Completed spacefarmer dictionary with batch payouts")
-        
+
         return self.batch_payout_parsed_ct(batch)
-    
-    def batch_payout_parsed_ct(self, batch_pay_data:list):
-        '''
+
+    def batch_payout_parsed_ct(self, batch_pay_data: list):
+        """
         create a list with data parsed for cointracker
-        '''
-        
-        cointracker_data:list = []
+        """
+
+        cointracker_data: list = []
 
         for batch in batch_pay_data:
-            
-            date:int = max(batch_pay_data[batch][2])
-            date:str = Data.convert_date_for_cointracker(date)
-            sum_xch:float = sum(batch_pay_data[batch][0])
+
+            date: int = max(batch_pay_data[batch][2])
+            date: str = Data.convert_date_for_cointracker(date)
+            sum_xch: float = sum(batch_pay_data[batch][0])
 
             cointrack = {
                 "date": date,
@@ -98,13 +96,12 @@ class ReportGenerator:
 
         return cointracker_data
 
-
     def time_based_report(self, data: list, time_period: str):
-        '''
+        """
         takes a list of payouts and block wins.  Creates a dictionary with the keys being created as daily or weekly.
         can be used to show xch mined by day or weekly monday through sunday
 
-        '''
+        """
         space_report = {}
         logger.info(f"creating spacefarmer dictionary with time period = {time_period}")
         for line in data:
@@ -133,22 +130,23 @@ class ReportGenerator:
             space_report[key][0].append(xch_amount)
             space_report[key][1].append(usd_price)
 
-        logger.info(f"Completed spacefarmer dictionary with time period = {time_period}")
+        logger.info(
+            f"Completed spacefarmer dictionary with time period = {time_period}"
+        )
 
         return self.format_for_cointracker(space_report)
 
-
     def format_for_cointracker(self, space_dict: dict) -> list:
-        ct:list = []
+        ct: list = []
 
         for k in space_dict:
-            sum_xch:float = sum(space_dict[k][0])
-            average_usd_price:float = sum(space_dict[k][1]) / len(space_dict[k][1])
-            daily_usd_revenue:float = sum_xch * average_usd_price
+            sum_xch: float = sum(space_dict[k][0])
+            average_usd_price: float = sum(space_dict[k][1]) / len(space_dict[k][1])
+            daily_usd_revenue: float = sum_xch * average_usd_price
             logger.info(
                 f"{k}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}"
             )
-            cointrack:dict = {
+            cointrack: dict = {
                 "date": k,
                 "Received Quantity": sum_xch,
                 "Received Currency": "XCH",
@@ -161,5 +159,3 @@ class ReportGenerator:
             ct.append(cointrack)
 
         return ct
-    
-    

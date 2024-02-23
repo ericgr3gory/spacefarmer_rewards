@@ -60,7 +60,6 @@ def main() -> None:
     logger.info("starting main")
     args = arguments()
     space_api = APIHandler()
-    
 
     if args.l:
         farmer_id = args.l
@@ -71,30 +70,31 @@ def main() -> None:
         logger.info(f"-a all mode running for framer id {farmer_id}")
         blocks = space_api.blocks()
         payouts = space_api.payouts()
-        blocks = Data.check_transaction_id(payouts)
-        FileManager(action='w', report_type='payouts', data=payouts)
-        FileManager(action='w', report_type='blocks', data=blocks)
-        
+        payouts = Data.check_transaction_id(payouts)
+        FileManager(action="w", report_type="payouts", data=payouts)
+        FileManager(action="w", report_type="blocks", data=blocks)
+
     if args.u:
         logger.info(f"-u update mode running for framer id {farmer_id}")
-        data = FileManager(report_type='read').all_transactions
-        last = Data.time_of_last_sync(data['payouts'])
+        data = FileManager(report_type="read").all_transactions
+        last = Data.time_of_last_sync(data["payouts"])
         blocks = space_api.blocks(sync_d=last)
         payouts = space_api.payouts(sync_d=last)
         payouts = Data.check_transaction_id(payouts)
-        FileManager(action='a', report_type='payouts', data=payouts)
-        FileManager(action='a', report_type='blocks', data=blocks)
+        FileManager(action="a", report_type="payouts", data=payouts)
+        FileManager(action="a", report_type="blocks", data=blocks)
 
     if args.p:
-        data = FileManager(report_type='read').all_transactions
+        logger.info(f"-p mode running for framer id {farmer_id}")
+        data = FileManager(report_type="read").all_transactions
         data_list = []
         for key in data:
             data_list.extend(data[key])
 
         data = sorted(data_list, key=lambda x: x["timestamp"])
         reports = ReportGenerator(data=data)
-        FileManager(action='w', report_type='batch_cointracker', data=reports.batch)
-        
+        FileManager(action="w", report_type="batch_cointracker", data=reports.batch)
+
 
 if __name__ == "__main__":
     main()

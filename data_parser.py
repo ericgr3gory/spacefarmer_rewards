@@ -19,13 +19,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-
 class DataParser:
-    def __init__(self) -> None:
-        ...
+    def __init__(self) -> None: ...
 
-    
-    def time_of_last_sync(data:list) -> int:
+    def time_of_last_sync(data: list) -> int:
         logger.info("retrieving time and date of last syc")
         try:
             return int(data[-1]["timestamp"])
@@ -35,23 +32,21 @@ class DataParser:
                 "no data to retreive sync date and time from starting from begining"
             )
             return 0
-    
+
     def convert_mojo_to_xch(mojos: int) -> float:
         logger.info("converting mojo to xch")
         return int(mojos) / 10**12
-
 
     def convert_date_for_cointracker(date: int) -> str:
         logger.info("converting date time to cointracker.com compatible format")
         time_utc = datetime.fromtimestamp(date)
         return time_utc.strftime("%m/%d/%Y %H:%M:%S")
 
-
     def day(d: int) -> str:
-        '''
+        """
         converted daily timestamp to datetime of last second of day and coverted to cointracker formet
         can be used to generate daily rewards for cointracker format
-        '''
+        """
         d = datetime.fromtimestamp(d).date()
         d = datetime(
             year=d.year,
@@ -67,12 +62,11 @@ class DataParser:
         )
         return d.strftime("%m/%d/%Y %H:%M:%S")
 
-
     def week(d: int) -> str:
-        '''
+        """
         converted daily timestamp to datetime of last second of week and  coverted to cointracker format
         can be used to generate weekly rewards for cointracker format
-        '''
+        """
         d = datetime.fromtimestamp(d)
         monday = d - timedelta(days=d.weekday())
         sunday = monday + timedelta(days=6)
@@ -81,18 +75,22 @@ class DataParser:
             "converted daily timestamp to datetime of last second of week and  coverted to cointracker formet"
         )
         return sunday.strftime("%m/%d/%Y %H:%M:%S")
-    
 
     def check_transaction_id(data: list) -> list:
-        print('checking')
+        """
+        takes data list and creates new list that excludes transaction_id with the value None
+        this removes pending payouts
+
+        """
+
         new_list = []
         for line in data:
 
             if "transaction_id" in line:
-                
+
                 if line["transaction_id"]:
                     new_list.append(line)
-                    
+
             else:
                 new_list.append(line)
 
