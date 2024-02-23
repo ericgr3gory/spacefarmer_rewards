@@ -1,4 +1,28 @@
+import argparse
+import sys
+from dotenv import load_dotenv
+import os
+from time import sleep
+import logging
+from file_managment import FileManager
+from data_parser import DataParser as Data
+from api_handler import APIHandler
+from report_generator import ReportGenerator
+load_dotenv()
 
+TEMP_DIR = os.environ.get("TEMP_DIR")
+HOME = os.environ.get("HOME")
+CURRENT_DIR = os.getcwd()
+
+
+logging.basicConfig(
+    filename=f"{TEMP_DIR}/space.log",
+    encoding="utf-8",
+    filemode="a",
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 def arguments() -> argparse:
@@ -33,14 +57,42 @@ def arguments() -> argparse:
 
 def main() -> None:
     logger.info("starting main")
-    # args = arguments()
+    args = arguments()
+    space_api = APIHandler()
     
-    #ap = APIHandler(synced=1708368372)
-    a = APIHandler()
-    a.blocks(sync_d=1708368372)
-    fm = FileManager()
-    data = fm.read_all_transactions()
-    print(data)
-    
+
+    if args.l:
+        farmer_id = args.l
+    else:
+        farmer_id = os.environ.get("FARMER_ID")
+
+    if args.a:
+        logger.info(f"-a all mode running for framer id {farmer_id}")
+        blocks = space_api.blocks()
+        payouts = space_api.payouts()
+        blocks = Data.check_transaction_id(blocks)
+        FileManager(action='w', report_type='payouts', data=payouts)
+        FileManager(action='w', report_type='blocks', data=blocks)
+        
+    if args.u:
+        logger.info(f"-u update mode running for framer id {farmer_id}")
+        data = FileManager(report_type='read').all_transactions 
+        last = Data.time_of_last_sync(data['payouts'][0])
+        blocks = space_api.blocks(sync_d=last)
+        blocks = Data.check_transaction_id(blocks)
+        payouts = space_api.payouts(sync_d=last)
+        FileManager(action='a', report_type='payouts', data=payouts)
+        FileManager(action='a', report_type='blocks', data=blocks)
+
+    if args.p:
+        data = FileManager(report_type='read').all_transactions
+        data_list = []
+        for key in data:
+            data_list.extend(data[key][0])
+
+        data_list = sorted(data_list, key=lambda x: x["timestamp"])
+        reports = ReportGenerator(data=data_list)
+        FileManager(action='w', report_type='batch_cointracker', data=reports.batch)
+
 if __name__ == "__main__":
     main()

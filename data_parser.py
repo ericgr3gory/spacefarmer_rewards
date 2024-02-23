@@ -25,7 +25,7 @@ class DataParser:
         ...
 
     
-    def time_of_last_sync(data) -> int:
+    def time_of_last_sync(data:list) -> int:
         logger.info("retrieving time and date of last syc")
         try:
             return int(data[-1]["timestamp"])
@@ -81,3 +81,19 @@ class DataParser:
             "converted daily timestamp to datetime of last second of week and  coverted to cointracker formet"
         )
         return sunday.strftime("%m/%d/%Y %H:%M:%S")
+    
+    
+    def check_transaction_id(self, data: list) -> list:
+        new_list = []
+        for line in data:
+
+            if "transaction_id" in line:
+                tid = line["transaction_id"]
+                if tid == None:
+                    ...
+                if tid:
+                    new_list.append(line)
+            else:
+                new_list.append(line)
+
+        return new_list

@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ReportGenerator:
     
     def __init__(self, data: list) -> None:
-        self.batch_payout = self.batch_pay(data)
+        self.batch = self.batch_pay(data)
         self.daily_earnings = self.time_based_report(data=data, time_period='d')
         self.weekly_earnings = self.time_based_report(data=data, time_period='w')
 
@@ -162,17 +162,4 @@ class ReportGenerator:
 
         return ct
     
-    def check_transaction_id(self, data: list) -> list:
-        new_list = []
-        for line in data:
-
-            if "transaction_id" in line:
-                tid = line["transaction_id"]
-                if tid == None:
-                    ...
-                if tid:
-                    new_list.append(line)
-            else:
-                new_list.append(line)
-
-        return new_list
+    
