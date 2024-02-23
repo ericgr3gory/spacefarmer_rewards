@@ -26,22 +26,53 @@ class APIHandler:
 
     def __init__(self) -> None:
         self.session = requests.Session()
-        self.farmer_id = os.environ.get("FARMER_ID")
-        self.api_prefix = os.environ.get("API")
-        self.api_blocks = os.environ.get("API_BLOCKS")
-        self.api_payouts = os.environ.get("API_PAYOUTS")
+        self.FARMER_ID = os.environ.get("FARMER_ID")
+        self.API = "https://spacefarmers.io/api/farmers/"
+        self.API_PAYOUTS = f"{self.API}{self.FARMER_ID}/payouts?page="
+        self.API_BLOCKS = f"{self.API}{self.FARMER_ID}/blocks?page="
+        self.API_PARTIALS = f"{self.API}{self.FARMER_ID}partials?page="
+        self.API_PLOTS = f"{self.API}{self.FARMER_ID}plots?page="
+        self.API_FARMER_SHOW = f"{self.API}{self.FARMER_ID}"
+
 
     def payouts(self, sync_d: int = 0):
-        self.synced = sync_d
-        data = self.retrieve_data(api_endpoint_suffix=self.api_payouts)
+        '''
+        reteive payout data if syc_d is changed it will update until that time
+        '''
+        self.synced:int = sync_d
+        logger.info('retreiving payout data')
+        data:list = self.retrieve_data(api_addr=self.API_PAYOUTS)
         return self.sort_data(data)
 
     def blocks(self, sync_d: int = 0):
-        self.synced = sync_d
-        data = self.retrieve_data(api_endpoint_suffix=self.api_blocks)
+        '''
+        reteive block data if syc_d is changed it will update until that time
+        '''
+        self.synced:int = sync_d
+        logger.info('retreiving block data')
+        data:list = self.retrieve_data(api_addr=self.API_BLOCKS)
         return self.sort_data(data)
 
-    def api_request(self, api) -> str:
+    def partials(self, sync_d: int = 0):
+        '''
+        reteive partial data if syc_d is changed it will update until that time
+        '''
+        self.synced:int = sync_d
+        logger.info('retreiving partials data')
+        data:list = self.retrieve_data(api_addr=self.API_PARTIALS)
+        return self.sort_data(data)
+
+    def plots(self, sync_d: int = 0):
+        '''
+        reteive plot data if syc_d is changed it will update until that time
+        '''
+        self.synced:int = sync_d
+        logger.info('retreiving plot data')
+        data:list = self.retrieve_data(api_addr=self.API_PLOTS)
+        return self.sort_data(data)
+
+
+    def api_request(self, api:str) -> str:
 
         for _ in range(3):
             r = self.session.get(api)
@@ -59,37 +90,37 @@ class APIHandler:
         logger.warning(message)
         sys.exit(message)
 
-    def number_pages(self, api_endpoint_suffix) -> int:
-        logger.info("finding number of pages containing payout data")
-        api = f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}1"
-        data = self.api_request(api)
-        json_data = json.loads(data)
-        page = int(json_data["links"]["total_pages"])
-        logger.info(f"number of pages found {page}")
-        return page
+    def number_pages(self, api:str) -> int:
+        logger.info("finding number of pages containing data")
+        api:str = f"{api}1"
+        data:str = self.api_request(api)
+        json_data:dict = json.loads(data)
+        number_of_pages:int = int(json_data["links"]["total_pages"])
+        logger.info(f"number of pages found {number_of_pages}")
+        return number_of_pages
 
-    def is_update_needed(self, line):
-        time_utc = line["attributes"]["timestamp"]
+    def is_update_needed(self, line:dict):
+        time_utc:int = line["attributes"]["timestamp"]
         if time_utc > self.synced:
             return True
         else:
             return False
 
-    def sort_data(self, data):
+    def sort_data(self, data:list):
 
         return sorted(data, key=lambda x: x["timestamp"])
 
-    def retrieve_data(self, api_endpoint_suffix: str) -> list:
+    def retrieve_data(self, api_addr: str) -> list:
         data = []
         more_transaction = True
-        pages = self.number_pages(api_endpoint_suffix=api_endpoint_suffix)
-        for page in range(1, pages + 1):
+        number_of_pages:int = self.number_pages(api=api_addr)
+        for page in range(1, number_of_pages + 1):
             if more_transaction:
-                logger.info(f"getting data from{page}")
-                page = self.api_request(
-                    api=f"{self.api_prefix}{self.farmer_id}{api_endpoint_suffix}{page}"
+                logger.info(f"getting data from page {page}")
+                page_data:str = self.api_request(
+                    api=f"{api_addr}{page}"
                 )
-                json_page = json.loads(page)
+                json_page:dict = json.loads(page_data)
 
                 for i in json_page["data"]:
 

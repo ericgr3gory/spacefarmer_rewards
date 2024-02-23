@@ -115,7 +115,7 @@ class ReportGenerator:
                 space_report[key] = [[], []]
             try:
                 if line["farmer_reward_taken_by_gigahorse"] == "False":
-                    xch_amount: float = int(line["farmer_reward"]) / 10**11
+                    xch_amount: float = int(line["farmer_reward"]) / 10**12
                     space_report[key][0].append(xch_amount)
                     continue
 
