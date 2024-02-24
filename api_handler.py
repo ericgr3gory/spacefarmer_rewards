@@ -24,16 +24,36 @@ logger = logging.getLogger(__name__)
 
 class APIHandler:
 
-    def __init__(self) -> None:
+    def __init__(self, FARMER_ID: str) -> None:
         self.session = requests.Session()
-        self.FARMER_ID = os.environ.get("FARMER_ID")
+        self.FARMER_ID = FARMER_ID
         self.API = "https://spacefarmers.io/api/farmers/"
         self.API_PAYOUTS = f"{self.API}{self.FARMER_ID}/payouts?page="
         self.API_BLOCKS = f"{self.API}{self.FARMER_ID}/blocks?page="
         self.API_PARTIALS = f"{self.API}{self.FARMER_ID}partials?page="
         self.API_PLOTS = f"{self.API}{self.FARMER_ID}plots?page="
         self.API_FARMER_SHOW = f"{self.API}{self.FARMER_ID}"
-
+        self.validate_farmer = self.is_farmer_id_valid()
+    
+    
+    
+    
+    def is_farmer_id_valid(self):
+        '''
+        validate farmer id for length and characters
+        validate farmer id is on space farmers
+        '''
+        logger.info('validating farmer id')
+        if len(self.FARMER_ID) == 64 and self.FARMER_ID.isalnum():
+            check = self.api_request(f'{self.API}{self.FARMER_ID}')
+            if 'error' in check:
+                logger.info("farmer_id not on spacefarmers")
+                raise FarmerNotFoundError(self.FARMER_ID)
+        else:
+            logger.info("check farmer_id")
+            raise InvalidFarmerIDError(self.FARMER_ID)
+            
+        
 
     def payouts(self, sync_d: int = 0):
         '''
@@ -73,13 +93,20 @@ class APIHandler:
 
 
     def api_request(self, api:str) -> str:
-
+        '''
+        makes atempts to conect to api sleeping 3 seconds in between
+        '''
         for _ in range(3):
             r = self.session.get(api)
             logger.info(f"connecting to {api}")
             if r.status_code == 200:
                 logger.info(f"connected to {api}")
                 return r.text
+            
+            elif r.status_code == 404:
+                logger.info(f"farm not found {api}")
+                return r.text
+            
             else:
                 logger.info(f"connection failed to {api}")
                 logger.info(f"trying again")
@@ -88,7 +115,7 @@ class APIHandler:
             "three attempts were made to contact api all failed.  Try again later..."
         )
         logger.warning(message)
-        sys.exit(message)
+        raise ApiConnectionFailure(api)
 
     def number_pages(self, api:str) -> int:
         logger.info("finding number of pages containing data")
@@ -135,3 +162,26 @@ class APIHandler:
                 break
 
         return data
+
+
+class FarmerNotFoundError(Exception):
+    """Exception raised when a farmer ID is not found."""
+    def __init__(self, farmer_id, message="Farmer ID not found"):
+        self.farmer_id = farmer_id
+        self.message = message
+        super().__init__(self.message)
+
+class InvalidFarmerIDError(Exception):
+    """Exception raised for invalid farmer IDs."""
+    def __init__(self, farmer_id, message="Invalid Farmer ID"):
+        self.farmer_id = farmer_id
+        self.message = message
+        super().__init__(self.message)
+
+
+class ApiConnectionFailure(Exception):
+    '''exception raised after 3 unsuccessful attempts to contact api'''
+    def __init__(self, api, message='Unable to Connect to Api'):
+        self.api = api
+        self.message = message
+        super().__init__(self.message)

@@ -59,12 +59,14 @@ def arguments() -> argparse:
 def main() -> None:
     logger.info("starting main")
     args = arguments()
-    space_api = APIHandler()
+    
 
     if args.l:
         farmer_id = args.l
     else:
         farmer_id = os.environ.get("FARMER_ID")
+    
+    space_api = APIHandler(FARMER_ID=farmer_id)
 
     if args.a:
         logger.info(f"-a all mode running for framer id {farmer_id}")
