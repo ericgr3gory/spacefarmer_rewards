@@ -46,17 +46,15 @@ class ReportGenerator:
                 batch[key] = [[], [], []]
 
             if "farmer_reward_taken_by_gigahorse" in line:
-                farmer_reward: bool = bool(line["farmer_reward_taken_by_gigahorse"])
-
-                if farmer_reward:
+                
+                if line["farmer_reward_taken_by_gigahorse"] == "False":
                     xch_amount: float = int(line["farmer_reward"]) / 10**11
                     batch[key][0].append(xch_amount)
                     batch[key][2].append(int(line["timestamp"]))
                     continue
 
-                if not farmer_reward:
-                    batch[key][0].append(0)
-                    batch[key][2].append(int(line["timestamp"]))
+                if line["farmer_reward_taken_by_gigahorse"] == "True":
+                    #batch[key][2].append(int(line["timestamp"]))
                     continue
 
             xch_amount: float = Data.convert_mojo_to_xch(int(line["amount"]))
@@ -78,6 +76,8 @@ class ReportGenerator:
 
         for batch in batch_pay_data:
 
+            if batch_pay_data[batch][2] == []:
+                continue
             date: int = max(batch_pay_data[batch][2])
             date: str = Data.convert_date_for_cointracker(date)
             sum_xch: float = sum(batch_pay_data[batch][0])
