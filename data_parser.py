@@ -2,21 +2,18 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import logging
-
+from rich.logging import RichHandler
+from rich.console import Console
 
 load_dotenv()
 
 TEMP_DIR = os.environ.get("TEMP_DIR")
 CURRENT_DIR = os.getcwd()
 
-logging.basicConfig(
-    filename=f"{TEMP_DIR}/space.log",
-    encoding="utf-8",
-    filemode="a",
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
+
+
+
 
 
 class DataParser:

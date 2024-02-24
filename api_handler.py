@@ -7,22 +7,10 @@ from time import sleep
 import logging
 
 
-load_dotenv()
-
-TEMP_DIR = os.environ.get("TEMP_DIR")
-CURRENT_DIR = os.getcwd()
-
-logging.basicConfig(
-    filename=f"{TEMP_DIR}/space.log",
-    encoding="utf-8",
-    filemode="a",
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
-
 
 class APIHandler:
+
+    logger = logging.getLogger(__name__)
 
     def __init__(self, FARMER_ID: str) -> None:
         self.session = requests.Session()
@@ -34,7 +22,7 @@ class APIHandler:
         self.API_PLOTS = f"{self.API}{self.FARMER_ID}plots?page="
         self.API_FARMER_SHOW = f"{self.API}{self.FARMER_ID}"
         self.validate_farmer = self.is_farmer_id_valid()
-    
+        self.logger = logging.getLogger(__name__)
     
     
     
@@ -43,14 +31,14 @@ class APIHandler:
         validate farmer id for length and characters
         validate farmer id is on space farmers
         '''
-        logger.info('validating farmer id')
+        self.logger.info('validating farmer id')
         if len(self.FARMER_ID) == 64 and self.FARMER_ID.isalnum():
             check = self.api_request(f'{self.API}{self.FARMER_ID}')
             if 'error' in check:
-                logger.info("farmer_id not on spacefarmers")
+                self.logger.info("farmer_id not on spacefarmers")
                 raise FarmerNotFoundError(self.FARMER_ID)
         else:
-            logger.info("check farmer_id")
+            self.logger.info("check farmer_id")
             raise InvalidFarmerIDError(self.FARMER_ID)
             
         
@@ -60,7 +48,7 @@ class APIHandler:
         reteive payout data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        logger.info('retreiving payout data')
+        self.logger.info('retreiving payout data')
         data:list = self.retrieve_data(api_addr=self.API_PAYOUTS)
         return self.sort_data(data)
 
@@ -69,7 +57,7 @@ class APIHandler:
         reteive block data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        logger.info('retreiving block data')
+        self.logger.info('retreiving block data')
         data:list = self.retrieve_data(api_addr=self.API_BLOCKS)
         return self.sort_data(data)
 
@@ -78,7 +66,7 @@ class APIHandler:
         reteive partial data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        logger.info('retreiving partials data')
+        self.logger.info('retreiving partials data')
         data:list = self.retrieve_data(api_addr=self.API_PARTIALS)
         return self.sort_data(data)
 
@@ -87,7 +75,7 @@ class APIHandler:
         reteive plot data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        logger.info('retreiving plot data')
+        self.logger.info('retreiving plot data')
         data:list = self.retrieve_data(api_addr=self.API_PLOTS)
         return self.sort_data(data)
 
@@ -98,32 +86,32 @@ class APIHandler:
         '''
         for _ in range(3):
             r = self.session.get(api)
-            logger.info(f"connecting to {api}")
+            self.logger.info(f"connecting to {api}")
             if r.status_code == 200:
-                logger.info(f"connected to {api}")
+                self.logger.info(f"connected to {api}")
                 return r.text
             
             elif r.status_code == 404:
-                logger.info(f"farm not found {api}")
+                self.logger.info(f"farm not found {api}")
                 return r.text
             
             else:
-                logger.info(f"connection failed to {api}")
-                logger.info(f"trying again")
+                self.logger.info(f"connection failed to {api}")
+                self.logger.info(f"trying again")
                 sleep(3)
         message = (
             "three attempts were made to contact api all failed.  Try again later..."
         )
-        logger.warning(message)
+        self.logger.warning(message)
         raise ApiConnectionFailure(api)
 
     def number_pages(self, api:str) -> int:
-        logger.info("finding number of pages containing data")
+        self.logger.info("finding number of pages containing data")
         api:str = f"{api}1"
         data:str = self.api_request(api)
         json_data:dict = json.loads(data)
         number_of_pages:int = int(json_data["links"]["total_pages"])
-        logger.info(f"number of pages found {number_of_pages}")
+        self.logger.info(f"number of pages found {number_of_pages}")
         return number_of_pages
 
     def is_update_needed(self, line:dict):
@@ -143,7 +131,7 @@ class APIHandler:
         number_of_pages:int = self.number_pages(api=api_addr)
         for page in range(1, number_of_pages + 1):
             if more_transaction:
-                logger.info(f"getting data from page {page}")
+                self.logger.info(f"getting data from page {page}")
                 page_data:str = self.api_request(
                     api=f"{api_addr}{page}"
                 )
@@ -152,10 +140,10 @@ class APIHandler:
                 for i in json_page["data"]:
 
                     if self.is_update_needed(i):
-                        logger.info("Updating..")
+                        self.logger.info(f"Updating..{i['attributes']}")
                         data.append(i["attributes"])
                     else:
-                        logger.info("No More updates")
+                        self.logger.info("No More updates")
                         more_transaction = False
                         break
             else:

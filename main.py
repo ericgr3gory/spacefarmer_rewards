@@ -4,18 +4,13 @@ from dotenv import load_dotenv
 import os
 from time import sleep
 import logging
-from file_managment import FileManager
-from data_parser import DataParser as Data
-from api_handler import APIHandler
-from report_generator import ReportGenerator
-
+from logging_config import setup_rich_logging
 load_dotenv()
 
 TEMP_DIR = os.environ.get("TEMP_DIR")
 HOME = os.environ.get("HOME")
 CURRENT_DIR = os.getcwd()
-
-
+"""
 logging.basicConfig(
     filename=f"{TEMP_DIR}/space.log",
     encoding="utf-8",
@@ -23,7 +18,16 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
+"""
+setup_rich_logging()
 logger = logging.getLogger(__name__)
+
+
+from file_managment import FileManager
+from data_parser import DataParser as Data
+from api_handler import APIHandler
+from report_generator import ReportGenerator
+
 
 
 def arguments() -> argparse:

@@ -9,18 +9,13 @@ load_dotenv()
 TEMP_DIR = os.environ.get("TEMP_DIR")
 CURRENT_DIR = os.getcwd()
 
-logging.basicConfig(
-    filename=f"{TEMP_DIR}/space.log",
-    encoding="utf-8",
-    filemode="a",
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+
 logger = logging.getLogger(__name__)
 
 
 class FileManager:
     """read, write and assign file names"""
+ 
 
     def __init__(
         self, report_type: str = "read", action: str = "r", data: list = []
