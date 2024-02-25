@@ -6,12 +6,12 @@ import os
 from time import sleep
 import logging
 
+logger = logging.getLogger(__name__)
 
 
 class APIHandler:
 
-    logger = logging.getLogger(__name__)
-
+    
     def __init__(self, FARMER_ID: str) -> None:
         self.session = requests.Session()
         self.FARMER_ID = FARMER_ID
@@ -22,7 +22,7 @@ class APIHandler:
         self.API_PLOTS = f"{self.API}{self.FARMER_ID}plots?page="
         self.API_FARMER_SHOW = f"{self.API}{self.FARMER_ID}"
         self.validate_farmer = self.is_farmer_id_valid()
-        self.logger = logging.getLogger(__name__)
+        
     
     
     
@@ -31,14 +31,16 @@ class APIHandler:
         validate farmer id for length and characters
         validate farmer id is on space farmers
         '''
-        self.logger.info('validating farmer id')
+        logger.info('validating farmer id')
         if len(self.FARMER_ID) == 64 and self.FARMER_ID.isalnum():
             check = self.api_request(f'{self.API}{self.FARMER_ID}')
             if 'error' in check:
-                self.logger.info("farmer_id not on spacefarmers")
+                logger.info(f"{self.FARMER_ID} not on spacefarmers")
                 raise FarmerNotFoundError(self.FARMER_ID)
+            else:
+                logger.info(f"{self.FARMER_ID} is valid and on spaceframers.io")
         else:
-            self.logger.info("check farmer_id")
+            logger.info(f"{self.FARMER_ID} is not a valid farmer id")
             raise InvalidFarmerIDError(self.FARMER_ID)
             
         
@@ -48,7 +50,7 @@ class APIHandler:
         reteive payout data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        self.logger.info('retreiving payout data')
+        logger.info('retreiving payout data')
         data:list = self.retrieve_data(api_addr=self.API_PAYOUTS)
         return self.sort_data(data)
 
@@ -57,7 +59,7 @@ class APIHandler:
         reteive block data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        self.logger.info('retreiving block data')
+        logger.info('retreiving block data')
         data:list = self.retrieve_data(api_addr=self.API_BLOCKS)
         return self.sort_data(data)
 
@@ -66,7 +68,7 @@ class APIHandler:
         reteive partial data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        self.logger.info('retreiving partials data')
+        logger.info('retreiving partials data')
         data:list = self.retrieve_data(api_addr=self.API_PARTIALS)
         return self.sort_data(data)
 
@@ -75,7 +77,7 @@ class APIHandler:
         reteive plot data if syc_d is changed it will update until that time
         '''
         self.synced:int = sync_d
-        self.logger.info('retreiving plot data')
+        logger.info('retreiving plot data')
         data:list = self.retrieve_data(api_addr=self.API_PLOTS)
         return self.sort_data(data)
 
@@ -86,43 +88,46 @@ class APIHandler:
         '''
         for _ in range(3):
             r = self.session.get(api)
-            self.logger.info(f"connecting to {api}")
+            logger.info(f"connecting to {api}")
             if r.status_code == 200:
-                self.logger.info(f"connected to {api}")
+                logger.info(f"connected to {api}")
                 return r.text
             
             elif r.status_code == 404:
-                self.logger.info(f"farm not found {api}")
+                logger.info(f"farm not found {api}")
                 return r.text
             
             else:
-                self.logger.info(f"connection failed to {api}")
-                self.logger.info(f"trying again")
+                logger.info(f"connection failed to {api}")
+                logger.info(f"trying again")
                 sleep(3)
         message = (
             "three attempts were made to contact api all failed.  Try again later..."
         )
-        self.logger.warning(message)
+        logger.warning(message)
         raise ApiConnectionFailure(api)
 
     def number_pages(self, api:str) -> int:
-        self.logger.info("finding number of pages containing data")
+        logger.info(f"finding number of pages containing data for {api}")
         api:str = f"{api}1"
         data:str = self.api_request(api)
         json_data:dict = json.loads(data)
         number_of_pages:int = int(json_data["links"]["total_pages"])
-        self.logger.info(f"number of pages found {number_of_pages}")
+        logger.info(f"Found number of pages {number_of_pages}")
         return number_of_pages
 
     def is_update_needed(self, line:dict):
         time_utc:int = line["attributes"]["timestamp"]
-        if time_utc > self.synced:
+        last_sync = self.synced
+        if time_utc > last_sync:
+            logger.info(f"Update needed {time_utc} > {last_sync}")
             return True
         else:
+            logger.info(f"No Update needed {time_utc} < {last_sync}")
             return False
 
     def sort_data(self, data:list):
-
+        logger.info(f'sorting data by time stamp')
         return sorted(data, key=lambda x: x["timestamp"])
 
     def retrieve_data(self, api_addr: str) -> list:
@@ -131,7 +136,7 @@ class APIHandler:
         number_of_pages:int = self.number_pages(api=api_addr)
         for page in range(1, number_of_pages + 1):
             if more_transaction:
-                self.logger.info(f"getting data from page {page}")
+                logger.info(f"getting data from page {page}")
                 page_data:str = self.api_request(
                     api=f"{api_addr}{page}"
                 )
@@ -140,15 +145,15 @@ class APIHandler:
                 for i in json_page["data"]:
 
                     if self.is_update_needed(i):
-                        self.logger.info(f"Updating..{i['attributes']}")
+                        logger.info(f"Updating..{i['attributes']}")
                         data.append(i["attributes"])
                     else:
-                        self.logger.info("No More updates")
+                        logger.info("No More updates")
                         more_transaction = False
                         break
             else:
                 break
-
+        logger.info(f'retrieve_data successful returning data')
         return data
 
 

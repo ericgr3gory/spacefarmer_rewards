@@ -4,37 +4,31 @@ from dotenv import load_dotenv
 import os
 from time import sleep
 import logging
-from logging_config import setup_rich_logging
-load_dotenv()
-
-TEMP_DIR = os.environ.get("TEMP_DIR")
-HOME = os.environ.get("HOME")
-CURRENT_DIR = os.getcwd()
-"""
-logging.basicConfig(
-    filename=f"{TEMP_DIR}/space.log",
-    encoding="utf-8",
-    filemode="a",
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-"""
-setup_rich_logging()
-logger = logging.getLogger(__name__)
-
-
+from logging_config import setup_rich_logging, setup_log
 from file_managment import FileManager
 from data_parser import DataParser as Data
 from api_handler import APIHandler
 from report_generator import ReportGenerator
 
+load_dotenv()
+
+TEMP_DIR = os.environ.get("TEMP_DIR")
+HOME = os.environ.get("HOME")
+CURRENT_DIR = os.getcwd()
+
+
+logger = logging.getLogger(__name__)
+
+
+
 
 
 def arguments() -> argparse:
-    logger.info("Retrieving arguments")
+    
     parser = argparse.ArgumentParser(
         description="Retreive block reward payments from SapceFarmers.com api and write to csv"
     )
+    parser.add_argument("-v", help="verbose mode prints logging to console will slow down execution", action="store_true")
     parser.add_argument("-l", help="launcher_id", type=str)
     parser.add_argument("-a", help="retieve all payments from api", action="store_true")
     parser.add_argument("-u", help="update payments from api", action="store_true")
@@ -61,10 +55,16 @@ def arguments() -> argparse:
 
 
 def main() -> None:
-    logger.info("starting main")
+    
     args = arguments()
     
+    if args.v:
+        setup_rich_logging()
+    else:
+        setup_log()
 
+    logger = logging.getLogger(__name__)
+    logger.info("starting main")
     if args.l:
         farmer_id = args.l
     else:
