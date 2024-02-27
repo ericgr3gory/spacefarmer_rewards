@@ -20,15 +20,16 @@ CURRENT_DIR = os.getcwd()
 logger = logging.getLogger(__name__)
 
 
-
-
-
 def arguments() -> argparse:
-    
+
     parser = argparse.ArgumentParser(
         description="Retreive block reward payments from SapceFarmers.com api and write to csv"
     )
-    parser.add_argument("-v", help="verbose mode prints logging to console will slow down execution", action="store_true")
+    parser.add_argument(
+        "-v",
+        help="verbose mode prints logging to console will slow down execution",
+        action="store_true",
+    )
     parser.add_argument("-l", help="launcher_id", type=str)
     parser.add_argument("-a", help="retieve all payments from api", action="store_true")
     parser.add_argument("-u", help="update payments from api", action="store_true")
@@ -55,9 +56,9 @@ def arguments() -> argparse:
 
 
 def main() -> None:
-    
+
     args = arguments()
-    
+
     if args.v:
         setup_rich_logging()
     else:
@@ -69,7 +70,7 @@ def main() -> None:
         farmer_id = args.l
     else:
         farmer_id = os.environ.get("FARMER_ID")
-    
+
     space_api = APIHandler(FARMER_ID=farmer_id)
 
     if args.a:
@@ -100,8 +101,12 @@ def main() -> None:
         data = sorted(data_list, key=lambda x: x["timestamp"])
         reports = ReportGenerator(data=data)
         FileManager(action="w", report_type="batch_cointracker", data=reports.batch)
-        FileManager(action="w", report_type="daily_cointracker", data=reports.daily_earnings)
-        FileManager(action="w", report_type="weekly_cointracker", data=reports.weekly_earnings)
+        FileManager(
+            action="w", report_type="daily_cointracker", data=reports.daily_earnings
+        )
+        FileManager(
+            action="w", report_type="weekly_cointracker", data=reports.weekly_earnings
+        )
 
 
 if __name__ == "__main__":

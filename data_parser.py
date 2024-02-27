@@ -13,9 +13,6 @@ CURRENT_DIR = os.getcwd()
 logger = logging.getLogger(__name__)
 
 
-
-
-
 class DataParser:
     def __init__(self) -> None: ...
 

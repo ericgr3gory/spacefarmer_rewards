@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 class FileManager:
     """read, write and assign file names"""
- 
 
     def __init__(
         self, report_type: str = "read", action: str = "r", data: list = []
