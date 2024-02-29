@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import logging
 from data_parser import DataParser as Data
+from rich import print as rprint
 
 load_dotenv()
 
@@ -127,8 +128,20 @@ class ReportGenerator:
         logger.info(
             f"Completed spacefarmer dictionary with time period = {time_period}"
         )
+        return self.display_results(space_report)
+            
+    def display_results(self, data:dict):
+        total_xch: float = 0
+        for line in data:
+            sum_xch: float = sum(data[line][0])
+            total_xch = total_xch + sum_xch
+            average_usd_price: float = sum(data[line][1]) / len(data[line][1])
+            daily_usd_revenue: float = sum_xch * average_usd_price
+            rprint( f"{line}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}, {total_xch}")
+            logger.info(
+                f"{line}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}"
+            )
 
-        return self.format_for_cointracker(space_report)
 
     def format_for_cointracker(self, space_dict: dict) -> list:
         ct: list = []

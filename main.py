@@ -36,7 +36,7 @@ def arguments() -> argparse:
     parser.add_argument("-w", help="weekly earning report", action="store_true")
     parser.add_argument("-d", help="daily earning report", action="store_true")
     parser.add_argument(
-        "-p", help="space farmer normal payout report", action="store_true"
+        "-b", help="space farmer batch payout report", action="store_true"
     )
     args = parser.parse_args()
 
@@ -101,13 +101,7 @@ def main() -> None:
         data = sorted(data_list, key=lambda x: x["timestamp"])
         reports = ReportGenerator(data=data)
         FileManager(action="w", report_type="batch_cointracker", data=reports.batch)
-        FileManager(
-            action="w", report_type="daily_cointracker", data=reports.daily_earnings
-        )
-        FileManager(
-            action="w", report_type="weekly_cointracker", data=reports.weekly_earnings
-        )
-
+    
 
 if __name__ == "__main__":
     main()
