@@ -91,8 +91,8 @@ def main() -> None:
         FileManager(action="a", report_type="payouts", data=payouts)
         FileManager(action="a", report_type="blocks", data=blocks)
 
-    if args.p:
-        logger.info(f"-p mode running for framer id {farmer_id}")
+    if args.b:
+        logger.info(f"-b mode running for framer id {farmer_id}")
         data = FileManager(report_type="read").all_transactions
         data_list = []
         for key in data:
