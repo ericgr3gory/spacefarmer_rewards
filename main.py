@@ -47,7 +47,7 @@ def arguments() -> argparse:
         logger.warning(text)
         sys.exit(text)
 
-    if not args.u and not args.a and not args.w and not args.d and not args.p:
+    if not args.u and not args.a and not args.w and not args.d and not args.b:
         text = "need to either update payments or retrieve all payments please pick only one."
         logger.warning(text)
         sys.exit(text)
