@@ -9,6 +9,7 @@ from file_managment import FileManager
 from data_parser import DataParser as Data
 from api_handler import APIHandler
 from report_generator import ReportGenerator
+from rich import print as rprint
 
 load_dotenv()
 
@@ -72,7 +73,7 @@ def main() -> None:
         farmer_id = os.environ.get("FARMER_ID")
 
     space_api = APIHandler(FARMER_ID=farmer_id)
-
+    rprint(space_api.xch)
     if args.a:
         logger.info(f"-a all mode running for framer id {farmer_id}")
         blocks = space_api.blocks()

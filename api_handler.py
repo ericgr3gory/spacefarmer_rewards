@@ -17,10 +17,12 @@ class APIHandler:
         self.API = "https://spacefarmers.io/api/farmers/"
         self.API_PAYOUTS = f"{self.API}{self.FARMER_ID}/payouts?page="
         self.API_BLOCKS = f"{self.API}{self.FARMER_ID}/blocks?page="
-        self.API_PARTIALS = f"{self.API}{self.FARMER_ID}partials?page="
-        self.API_PLOTS = f"{self.API}{self.FARMER_ID}plots?page="
+        self.API_PARTIALS = f"{self.API}{self.FARMER_ID}/partials?page="
+        self.API_PLOTS = f"{self.API}{self.FARMER_ID}/plots?page="
+        self.API_POOL = f"https://spacefarmers.io/api/pool/stats"
         self.API_FARMER_SHOW = f"{self.API}{self.FARMER_ID}"
         self.validate_farmer = self.is_farmer_id_valid()
+        self.xch = self.xch_price()
 
     def is_farmer_id_valid(self):
         """
@@ -147,6 +149,12 @@ class APIHandler:
         logger.info(f"retrieve_data successful returning data")
         return data
 
+
+    def xch_price(self):
+        data = self.api_request(self.API_POOL)
+        json_data = json.loads(data)
+        
+        return float(json_data["data"]["xch"]["usdt"])
 
 class FarmerNotFoundError(Exception):
     """Exception raised when a farmer ID is not found."""
