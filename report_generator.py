@@ -16,11 +16,15 @@ logger = logging.getLogger(__name__)
 class ReportGenerator:
 
     def __init__(self, data: list) -> None:
-        self.batch: list = self.batch_pay(data)
-        self.daily_earnings: list = self.time_based_report(data=data, time_period="d")
-        self.weekly_earnings: list = self.time_based_report(data=data, time_period="w")
+        self.data = data
+        
+    def weekly_report(self):
+        return self.time_based_report(data=self.data, time_period="w")
+    
+    def daily_report(self):
+        return self.time_based_report(data=self.data, time_period="d")
 
-    def batch_pay(self, data: list) -> dict:
+    def batch_pay(self) -> dict:
         """
         creates a dictionary using keys based on payout transaction ID for normal payouts or farmed height for block rewards
         each key has three lists one for xch, one for usd price and one for timestamp
@@ -28,7 +32,7 @@ class ReportGenerator:
         dates and amounts of xch should match the data viewable on the payouts page of spacefarmers.io.  it should mtach the batch payouts.
         """
         batch: dict = {}
-
+        data = self.data
         logger.info(f"creating spacefarmer dictionary with batch payout schedule")
         for line in data:
             if "transaction_id" in line:

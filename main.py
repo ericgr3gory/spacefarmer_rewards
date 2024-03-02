@@ -101,7 +101,23 @@ def main() -> None:
 
         data = sorted(data_list, key=lambda x: x["timestamp"])
         reports = ReportGenerator(data=data)
-        FileManager(action="w", report_type="batch_cointracker", data=reports.batch)
+        report_data = reports.batch_pay()
+        FileManager(action="w", report_type="batch_cointracker", data=report_data)
+    
+    if args.d or args.w:
+        logger.info(f"-d mode running for framer id {farmer_id}")
+        data = FileManager(report_type="read").all_transactions
+        data_list = []
+        for key in data:
+            data_list.extend(data[key])
+
+        data = sorted(data_list, key=lambda x: x["timestamp"])
+        reports = ReportGenerator(data=data)
+        if args.d:
+            reports.daily_report()
+        if args.w:
+            reports.weekly_report()
+        
     
 
 if __name__ == "__main__":
