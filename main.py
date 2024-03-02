@@ -73,7 +73,7 @@ def main() -> None:
         farmer_id = os.environ.get("FARMER_ID")
 
     space_api = APIHandler(FARMER_ID=farmer_id)
-    rprint(space_api.xch)
+    
     if args.a:
         logger.info(f"-a all mode running for framer id {farmer_id}")
         blocks = space_api.blocks()
