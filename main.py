@@ -36,6 +36,7 @@ def arguments() -> argparse:
     parser.add_argument("-u", help="update payments from api", action="store_true")
     parser.add_argument("-w", help="weekly earning report", action="store_true")
     parser.add_argument("-d", help="daily earning report", action="store_true")
+    parser.add_argument("-p", help="current price of xch", action="store_true")
     parser.add_argument(
         "-b", help="space farmer batch payout report", action="store_true"
     )
@@ -48,9 +49,9 @@ def arguments() -> argparse:
         logger.warning(text)
         sys.exit(text)
 
-    if not args.u and not args.a and not args.w and not args.d and not args.b:
+    if not args.u and not args.a and not args.w and not args.d and not args.b and not args.p:
         text = "need to either update payments or retrieve all payments please pick only one."
-        logger.warning(text)
+        logger.info(text)
         sys.exit(text)
 
     return args
@@ -73,6 +74,11 @@ def main() -> None:
         farmer_id = os.environ.get("FARMER_ID")
 
     space_api = APIHandler(FARMER_ID=farmer_id)
+
+
+    if args.p:
+        xch = space_api.xch
+        print(xch)
     
     if args.a:
         logger.info(f"-a all mode running for framer id {farmer_id}")

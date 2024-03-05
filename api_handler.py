@@ -153,9 +153,13 @@ class APIHandler:
     def xch_price(self):
         data = self.api_request(self.API_POOL)
         json_data = json.loads(data)
-        
         return float(json_data["data"]["xch"]["usdt"])
-
+    
+    def farm_summary(self):
+        data = self.api_request(f"{self.API}{self.FARMER_ID}")
+        json_data = json.loads(data)
+        return json_data
+    
 class FarmerNotFoundError(Exception):
     """Exception raised when a farmer ID is not found."""
 
