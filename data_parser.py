@@ -73,19 +73,22 @@ class DataParser:
     def check_transaction_id(data: list) -> list:
         """
         takes data list and creates new list that excludes transaction_id with the value None
-        this removes pending payouts
+        this removes unpaid payouts
 
         """
 
-        new_list = []
+        paid_rewards = []
+        unpaid_rewards = []
         for line in data:
 
             if "transaction_id" in line:
 
                 if line["transaction_id"]:
-                    new_list.append(line)
+                    paid_rewards.append(line)
+                else:
+                    unpaid_rewards.append(line)
 
             else:
-                new_list.append(line)
+                paid_rewards.append(line)
 
-        return new_list
+        return paid_rewards, unpaid_rewards

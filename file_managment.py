@@ -51,6 +51,7 @@ class FileManager:
         file_names = {
             "blocks": f"-{self.api_blocks[1:6]}",
             "payouts": f"-{self.api_payouts[1:7]}",
+            "unpaid_payouts": f"-unpaid_payouts",
             "batch_cointracker": f"-batch_cointracker",
             "daily_cointracker": f"-daily_cointracker",
             "weekly_cointracker": f"weekly_cointracker",

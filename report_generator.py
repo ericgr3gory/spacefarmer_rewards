@@ -3,6 +3,7 @@ import os
 import logging
 from data_parser import DataParser as Data
 from rich import print as rprint
+import json
 
 load_dotenv()
 
@@ -170,3 +171,13 @@ class ReportGenerator:
             ct.append(cointrack)
 
         return ct
+
+    def unpaid_rewards(self):
+        upaid = self.data
+        mojo: float = 0
+        for line in upaid:
+           mojo += line['amount']
+        xch = Data.convert_mojo_to_xch(mojo)
+        logger.info(f'unpaid rewards = {xch}')
+          
+        

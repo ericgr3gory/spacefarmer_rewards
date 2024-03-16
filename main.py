@@ -84,7 +84,7 @@ def main() -> None:
         logger.info(f"-a all mode running for framer id {farmer_id}")
         blocks = space_api.blocks()
         payouts = space_api.payouts()
-        payouts = Data.check_transaction_id(payouts)
+        payouts, unpaid_payouts = Data.check_transaction_id(payouts)
         FileManager(action="w", report_type="payouts", data=payouts)
         FileManager(action="w", report_type="blocks", data=blocks)
 
@@ -94,9 +94,12 @@ def main() -> None:
         last = Data.time_of_last_sync(data["payouts"])
         blocks = space_api.blocks(sync_d=last)
         payouts = space_api.payouts(sync_d=last)
-        payouts = Data.check_transaction_id(payouts)
+        payouts, unpaid_payouts = Data.check_transaction_id(payouts)
+        FileManager(action="w", report_type="unpaid_payouts", data=unpaid_payouts)
+        ReportGenerator(unpaid_payouts).unpaid_rewards()
         FileManager(action="a", report_type="payouts", data=payouts)
         FileManager(action="a", report_type="blocks", data=blocks)
+        
 
     if args.b:
         logger.info(f"-b mode running for framer id {farmer_id}")
