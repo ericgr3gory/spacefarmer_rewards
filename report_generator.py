@@ -48,7 +48,7 @@ class ReportGenerator:
             if "farmer_reward_taken_by_gigahorse" in line:
 
                 if line["farmer_reward_taken_by_gigahorse"] == "False":
-                    xch_amount: float = int(line["farmer_reward"]) / 10**11
+                    xch_amount: float = int(line["farmer_reward"]) / 10**12
                     batch[key][0].append(xch_amount)
                     batch[key][2].append(int(line["timestamp"]))
                     continue
@@ -140,7 +140,10 @@ class ReportGenerator:
         for line in data:
             sum_xch: float = sum(data[line][0])
             total_xch = total_xch + sum_xch
-            average_usd_price: float = sum(data[line][1]) / len(data[line][1])
+            if len(data[line][1]):
+                average_usd_price: float = sum(data[line][1]) / len(data[line][1])
+            else:
+                average_usd_price = 0
             daily_usd_revenue: float = sum_xch * average_usd_price
             rprint( f"{line}, {round(sum_xch, 10)}, {round(average_usd_price, 2)}, {round(daily_usd_revenue, 2)}, {total_xch}")
             logger.info(
