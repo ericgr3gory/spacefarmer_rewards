@@ -76,9 +76,8 @@ class FileManager:
         try:
             field_names = self.data[0]
         except IndexError as e:
-            logger.info(e)
             logger.info(f"No Updates to write to csv for {self.file_name}")
-            sys.exit(f"No Updates to write to csv for {self.file_name}")
+            return
         with open(file=self.file_name, mode=self.file_mode) as csvfile:
             logger.info(f"writing csv file {self.file_name}")
             writer = csv.DictWriter(csvfile, fieldnames=field_names)
