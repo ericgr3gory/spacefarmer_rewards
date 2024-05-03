@@ -68,7 +68,7 @@ class FileManager:
             csv_reader = csv.DictReader(f)
             for row in csv_reader:
                 data.append(row)
-
+        
         return data
 
     def write_csv(self) -> None:

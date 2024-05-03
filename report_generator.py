@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ReportGenerator:
 
     def __init__(self, data: list) -> None:
-        self.data = data
+        self.data: list = data
         
     def weekly_report(self):
         return self.time_based_report(data=self.data, time_period="w")
@@ -38,14 +38,16 @@ class ReportGenerator:
         for line in data:
             if "transaction_id" in line:
                 key = line["transaction_id"]
-
+                
             if "farmed_height" in line:
                 key = line["farmed_height"]
-
+            
             if key not in batch:
                 batch[key] = [[], [], []]
+                logger.info(f'created new key {key}')
 
             if "farmer_reward_taken_by_gigahorse" in line:
+                logger.info(f'farmer reward taken by giga-horse: {line["farmer_reward_taken_by_gigahorse"]}')
 
                 if line["farmer_reward_taken_by_gigahorse"] == "False":
                     xch_amount: float = int(line["farmer_reward"]) / 10**12
@@ -54,20 +56,23 @@ class ReportGenerator:
                     continue
 
                 if line["farmer_reward_taken_by_gigahorse"] == "True":
-                    # batch[key][2].append(int(line["timestamp"]))
+                    batch[key][0].append(int(0))
+                    batch[key][2].append(int(line["timestamp"]))
                     continue
 
-            xch_amount: float = Data.convert_mojo_to_xch(int(line["amount"]))
+            xch_amount: float = int(line["amount"]) / 10**12
             usd_price: float = float(line["xch_usd"])
             batch[key][0].append(xch_amount)
             batch[key][1].append(usd_price)
             batch[key][2].append(int(line["timestamp"]))
 
         logger.info(f"Completed spacefarmer dictionary with batch payouts")
+        batch_keys = sorted(batch, key=lambda k: max(batch[k][2]))
+        sorted_batch = {k: batch[k] for k in batch_keys}
 
-        return self.batch_payout_parsed_ct(batch)
+        return self.batch_payout_parsed_ct(sorted_batch)
 
-    def batch_payout_parsed_ct(self, batch_pay_data: list):
+    def batch_payout_parsed_ct(self, batch_pay_data: dict):
         """
         create a list with data parsed for cointracker
         """
@@ -75,8 +80,9 @@ class ReportGenerator:
         cointracker_data: list = []
 
         for batch in batch_pay_data:
-
-            if batch_pay_data[batch][2] == []:
+            
+            if batch_pay_data[batch][0] == [0]:
+                # remove farmer reward fee madmax
                 continue
             date: int = max(batch_pay_data[batch][2])
             date: str = Data.convert_date_for_cointracker(date)

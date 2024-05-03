@@ -103,13 +103,12 @@ def main() -> None:
 
     if args.b:
         logger.info(f"-b mode running for framer id {farmer_id}")
-        data = FileManager(report_type="read").all_transactions
+        data:dict = FileManager(report_type="read").all_transactions
         data_list = []
         for key in data:
             data_list.extend(data[key])
-
-        data = sorted(data_list, key=lambda x: x["timestamp"])
-        reports = ReportGenerator(data=data)
+        
+        reports = ReportGenerator(data=data_list)
         report_data = reports.batch_pay()
         FileManager(action="w", report_type="batch_cointracker", data=report_data)
     

@@ -28,11 +28,11 @@ class DataParser:
             return 0
 
     def convert_mojo_to_xch(mojos: int) -> float:
-        logger.info("converting mojo to xch")
+        logger.debug("converting mojo to xch")
         return int(mojos) / 10**12
 
     def convert_date_for_cointracker(date: int) -> str:
-        logger.info("converting date time to cointracker.com compatible format")
+        logger.debug("converting date time to cointracker.com compatible format")
         time_utc = datetime.fromtimestamp(date)
         return time_utc.strftime("%m/%d/%Y %H:%M:%S")
 
